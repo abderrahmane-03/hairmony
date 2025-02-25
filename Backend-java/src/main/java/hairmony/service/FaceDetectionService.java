@@ -1,10 +1,8 @@
-package service;
+package hairmony.service;
 
 import org.bytedeco.opencv.global.opencv_core;           // For auto-loading the native libs
-import org.bytedeco.opencv.global.opencv_imgcodecs;         // Bytedeco Mat
 import org.bytedeco.opencv.opencv_core.Mat;
 import org.bytedeco.opencv.opencv_core.Rect;
-import org.bytedeco.opencv.opencv_core.Rect2d;          // Could also use Rect if you prefer
 import org.bytedeco.opencv.opencv_core.RectVector;      // Bytedeco equivalent of MatOfRect
 import org.bytedeco.opencv.opencv_objdetect.CascadeClassifier;
 import org.springframework.core.io.ClassPathResource;
