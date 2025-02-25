@@ -9,7 +9,7 @@ export default function LiveFaceShape() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
+  useEffect(() => { 
     let isMounted = true;
     setIsLoading(true);
 

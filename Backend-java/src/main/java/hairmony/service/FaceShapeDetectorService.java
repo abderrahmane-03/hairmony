@@ -1,4 +1,4 @@
-package service;
+package hairmony.service;
 
 import jakarta.annotation.PostConstruct;
 import org.bytedeco.opencv.global.opencv_face;

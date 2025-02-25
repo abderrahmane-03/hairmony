@@ -1,12 +1,11 @@
-package controller;
+package hairmony.controller;
 
 import lombok.RequiredArgsConstructor;
-import service.FaceDetectionService;
-import service.FaceShapeDetectorService;
-import service.FaceShapeDetectorService.ClassificationResult;
+import hairmony.service.FaceDetectionService;
+import hairmony.service.FaceShapeDetectorService;
+import hairmony.service.FaceShapeDetectorService.ClassificationResult;
 import org.bytedeco.javacpp.BytePointer;
 import org.bytedeco.opencv.opencv_core.*;
-import org.opencv.core.MatOfByte;
 import org.springdoc.core.converters.FileSupportConverter;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,7 +14,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.*;
 import java.util.Arrays;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.util.Base64;
 
 import static org.bytedeco.opencv.global.opencv_core.BORDER_CONSTANT;
@@ -203,7 +201,7 @@ public class AIController {
                     System.err.println("Unexpected response format: " + respStr);
                 }
             } else {
-                System.err.println("Python service returned status: " + response.statusCode());
+                System.err.println("Python com.service returned status: " + response.statusCode());
             }
         } catch (Exception ex) {
             ex.printStackTrace();

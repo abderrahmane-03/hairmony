@@ -1,13 +1,23 @@
 spring:
   application:
-    name: pigeon
+    name: hairmony
 
   main:
     allow-bean-definition-overriding: true
 
-  cors:
-    allowed-origins: "http://localhost:4000"
-
+  web:
+    cors:
+      enabled: true
+      mappings:
+        anyName:
+          paths:
+            - /path/to/api
+            - /path/to/api/**
+          allowed-origins: "http://localhost:4000"
+          allowed-methods: GET, POST, PUT, DELETE, OPTIONS
+          allowed-headers: "*"
+          allow-credentials: true
+          max-age: 3600
   datasource:
     url: jdbc:postgresql://localhost:5432/pigeon
     username: postgres
