@@ -11,6 +11,7 @@ export const login = async (username, password) => {
     if (response.data.role) {
       localStorage.setItem("role", response.data.role);
     }
+    window.dispatchEvent(new Event('login'));
     return response.data; // { token: "...", role: "BARBER" or "CLIENT" }
   } catch (error) {
     throw error.response?.data || "Login failed";

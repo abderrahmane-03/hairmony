@@ -1,43 +1,73 @@
+// src/App.jsx
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
+
+import NavBar from "./components/Nav/Navbar";
+import LoginForm from "./components/Authentication/Login";
+import RegisterForm from "./components/Authentication/Register";
+
+// Example FaceDetection components (adjust paths as needed)
 import UploadImage from "./components/FaceDetection/FaceDetection";
 import LiveFaceShape from "./components/FaceDetection/LiveFaceShape";
-import NavBar from "./components/Nav/Navbar";
+
+// Example Reservation page
 import ReservationPage from "./components/Reservation/ReservationPage";
-import PrivateRoute from './Security/ProtectRoute';
-import RegisterForm from "./components/Authentication/Register";
-import LoginForm from "./components/Authentication/Login";
 
-const Home = () => (
-  <div>
-    <h1>Welcome</h1>
-    <Link to="/upload">
-      <button>Go to Face Shape Detector</button>
-    </Link>
-    <Link to="/live"></Link>
-  </div>
-);
+// If you have a PrivateRoute
+import PrivateRoute from "./Security/ProtectRoute";
 
-function App() {
+// Import your context providers
+import { AuthProvider } from "./contexts/AuthContext";
+import { NotificationsProvider } from "./contexts/NotificationContext";
+
+function Home() {
   return (
-    <Router>
-      <NavBar />
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/register" element={<RegisterForm />} />
-        <Route path="/login" element={<LoginForm />} />
-        <Route path="/upload" element={<UploadImage />} />
-        <Route path="/live" element={<LiveFaceShape />} />
-        <Route 
-          path="/reservation" 
-          element={
-            <PrivateRoute>
-              <ReservationPage />
-            </PrivateRoute>
-          } 
-        />
-      </Routes>
-    </Router>
+    <div>
+      <h1>Welcome</h1>
+      <Link to="/upload">
+        <button>Go to Face Shape Detector</button>
+      </Link>
+      <Link to="/live">
+        <button>Go to Live Face Shape</button>
+      </Link>
+    </div>
   );
 }
 
-export default App;
+// Example Barber Dashboard
+function BarberDashboard() {
+  return <h1>Barber Dashboard</h1>;
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <NotificationsProvider>
+        <Router>
+          <NavBar />
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/register" element={<RegisterForm />} />
+            <Route path="/login" element={<LoginForm />} />
+            <Route path="/upload" element={<UploadImage />} />
+            
+            {/* Example private route for reservation */}
+            <Route element={<PrivateRoute />}>
+            <Route path="/reservation" element={<ReservationPage />} />
+            <Route path="/live" element={<LiveFaceShape />} />
+            </Route>
+
+            {/* Example barber dashboard route */}
+            <Route
+              path="/dashboardbarber"
+              element={
+                <PrivateRoute>
+                  <BarberDashboard />
+                </PrivateRoute>
+              }
+            />
+          </Routes>
+        </Router>
+      </NotificationsProvider>
+    </AuthProvider>
+  );
+}

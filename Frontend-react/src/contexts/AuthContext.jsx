@@ -1,33 +1,65 @@
-// import { createContext, useEffect, useState } from 'react';
-// import keycloak from '../services/KeycloakService';
+// src/contexts/AuthContext.jsx
+import  { createContext, useContext, useReducer } from "react";
+import { isAuthenticated, getRole, logout as logoutService } from "../services/AuthService";
 
-// export const AuthContext = createContext();
+const AuthContext = createContext();
 
-// export const AuthProvider = ({ children }) => {
-//   const [initialized, setInitialized] = useState(false);
-//   const [authenticated, setAuthenticated] = useState(false);
+const initialState = {
+  isAuthenticated: isAuthenticated(),
+  role: getRole(),
+};
 
-//   useEffect(() => {
-//     // Initialize keycloak with a login-required option if you want to force login,
-//     // or use 'check-sso' to check existing SSO session.
-//     keycloak
-//       .init({ onLoad: 'check-sso', promiseType: 'native' })
-//       .then((auth) => {
-//         setAuthenticated(auth);
-//         setInitialized(true);
-//       })
-//       .catch((err) => {
-//         console.error('Keycloak initialization error:', err);
-//       });
-//   }, []);
+function authReducer(state, action) {
+  switch (action.type) {
+    case "LOGIN": {
+      return {
+        ...state,
+        isAuthenticated: true,
+        role: action.payload.role,
+      };
+    }
+    case "LOGOUT": {
+      return {
+        ...state,
+        isAuthenticated: false,
+        role: null,
+      };
+    }
+    default:
+      return state;
+  }
+}
 
-//   if (!initialized) {
-//     return <div>Loading authentication...</div>;
-//   }
 
-//   return (
-//     <AuthContext.Provider value={{ keycloak, authenticated }}>
-//       {children}
-//     </AuthContext.Provider>
-//   );
-// };
+// eslint-disable-next-line react/prop-types
+export function AuthProvider({ children }) {
+  const [state, dispatch] = useReducer(authReducer, initialState);
+
+  // We call this after a successful login in the AuthService
+  const login = (token, role) => {
+    dispatch({ type: "LOGIN", payload: { role } });
+  };
+
+  const logout = () => {
+    logoutService(); // Clears localStorage
+    dispatch({ type: "LOGOUT" });
+  };
+
+  return (
+    <AuthContext.Provider
+      value={{
+        isAuthenticated: state.isAuthenticated,
+        role: state.role,
+        login,
+        logout,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+// Custom hook to use AuthContext
+export function useAuth() {
+  return useContext(AuthContext);
+}
