@@ -12,3 +12,36 @@
 .animate-fade-in-up {
     animation: fade-in-up 0.5s ease-out forwards;
 }
+
+.canvas-container {
+    position: relative;
+    width: 100%;
+    height: 0;
+    padding-bottom: 75%;
+    /* 4:3 aspect ratio */
+}
+
+.animated-delay {
+    animation-delay: 10s;
+}
+
+@keyframes float-in {
+    0% {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.animate-float-in {
+    animation: float-in 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+.canvas-container canvas {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+}
