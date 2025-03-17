@@ -2,6 +2,8 @@ package hairmony.entities;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "payments")
 @Getter
@@ -13,15 +15,18 @@ public class Payment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String method;    // "CASH", "CREDIT_CARD", etc.
-    private double amount;
+    private String method;  // e.g. "STRIPE"
+    private double amount;  // e.g. 2.0
+    private String description; // "Live Face Detection", etc.
 
-    // Relationship to a reservation
-    @OneToOne
-    @JoinColumn(name = "reservation_id")
-    private Reservation reservation;
+    private String status;  // e.g. "PENDING", "SUCCESS", "FAILED"
 
-    // Possibly a date or a status
-    // constructor(s), getters, setters, etc.
+    private String sessionId; // from Stripe
+
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User user;
+
+    private LocalDateTime paymentDate = LocalDateTime.now();
 }
 

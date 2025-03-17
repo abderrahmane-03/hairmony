@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/auth")
-@CrossOrigin(origins = "http://localhost:4000")
 public class AuthController {
 
     @Autowired
@@ -87,6 +86,6 @@ public class AuthController {
         User user = userRepository.findByUsername(request.getUsername()).orElseThrow();
         String token = jwtUtil.generateToken(user.getUsername(), user.getRole());
 
-        return new AuthResponse(token,user.getRole());
+        return new AuthResponse(token,user.getRole(),user.getId());
     }
 }

@@ -23,6 +23,22 @@
     }
 }
 
+@keyframes confetti {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(1000px) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+.animate-confetti {
+  animation: confetti 5s ease-in-out forwards;
+}
+
+
 .animated-delay {
     animation-delay: 10s;
 }
