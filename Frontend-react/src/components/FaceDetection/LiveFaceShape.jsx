@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState } from "react";
 import Webcam from "react-webcam";
 import axios from "axios";
-
+import {Link} from "react-router-dom"
 export default function LiveFaceShape() {
   const webcamRef = useRef(null);
   const canvasRef = useRef(null);
@@ -125,7 +125,7 @@ canvasRef.current.height = video.videoHeight;
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-8">
+    <div className="min-h-screen pt-32 bg-gray-100 dark:bg-gray-900 p-8">
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Webcam Section */}
         <div style={{ position: "relative" }} className="bg-gray-800 rounded-2xl shadow-xl overflow-hidden aspect-video">
@@ -206,36 +206,40 @@ canvasRef.current.height = video.videoHeight;
 
               {/* Recommendations */}
               <div className="space-y-4">
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                
+                <div className="grid grid-cols-1 gap-4">
+            {(faceData?.hairstyles || []).map((style, index) => (
+             <><h3 className="text-xl font-semibold text-gray-900 dark:text-white">
                   Recommended Hairstyles
                 </h3>
-                <div className="grid grid-cols-1 gap-4">
-                  {(faceData.hairstyles || []).map((style, index) => (
-                    <div
-                      key={index}
-                      className="group flex items-center p-4 bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 hover:border-indigo-300 dark:hover:border-indigo-500 transition-all duration-200"
-                    >
-                      <div className="flex-shrink-0 w-8 h-8 bg-indigo-100 dark:bg-indigo-900/30 rounded-md flex items-center justify-center mr-4 group-hover:bg-indigo-200 dark:group-hover:bg-indigo-900/50 transition-colors">
-                        <svg
-                          className="w-4 h-4 text-indigo-600 dark:text-indigo-400"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M13 10V3L4 14h7v7l9-11h-7z"
-                          />
-                        </svg>
-                      </div>
-                      <span className="text-gray-700 dark:text-gray-200">
-                        {style}
-                      </span>
+                 <div 
+                key={index}
+                className="relative group p-6 bg-white dark:bg-gray-700 rounded-xl hover:shadow-lg transition-all duration-300 border border-gray-200 dark:border-gray-600 hover:border-indigo-300 dark:hover:border-indigo-500"
+              >
+                <div className="flex items-start space-x-4">
+                  <div className="flex-shrink-0 w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center transition-colors group-hover:bg-indigo-200 dark:group-hover:bg-indigo-900/50">
+                    <svg className="w-6 h-6 text-indigo-600 dark:text-indigo-400"  />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      {style}
+                    </h3>
+                    <div className="mt-2 flex space-x-3">
+                      <button className="text-indigo-600 dark:text-indigo-400 text-sm font-medium hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center">
+                        View Examples
+                        <svg className="w-4 h-4 ml-1"  />
+                      </button>
+                      <Link to ="/reservation" className="text-green-600 dark:text-green-400 text-sm font-medium hover:text-green-700 dark:hover:text-green-300 flex items-center">
+                        Book Appointment
+                        <svg className="w-4 h-4 ml-1"  />
+                      </Link>
                     </div>
-                  ))}
+                  </div>
                 </div>
+              </div>
+              </>
+            ))}
+          </div>
               </div>
             </div>
           )}
@@ -246,6 +250,7 @@ canvasRef.current.height = video.videoHeight;
               <p>Position your face in the camera frame to begin analysis</p>
             </div>
           )}
+          
         </div>
       </div>
     </div>

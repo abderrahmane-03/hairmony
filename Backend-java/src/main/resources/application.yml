@@ -1,45 +1,37 @@
 spring:
   application:
     name: hairmony
-
-  main:
-    allow-bean-definition-overriding: true
-
+  datasource:
+    url: jdbc:postgresql://localhost:5432/hairmonydb
+    username: postgres
+    password: 200361816
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update  # Options: validate, update, create, create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        id.new_generator_mappings: true
   web:
     cors:
       enabled: true
       mappings:
         anyName:
           paths:
-            - /path/to/api
-            - /path/to/api/**
+            - /api/**
           allowed-origins: "http://localhost:4000"
           allowed-methods: GET, POST, PUT, DELETE, OPTIONS
           allowed-headers: "*"
           allow-credentials: true
           max-age: 3600
-  datasource:
-    url: jdbc:postgresql://localhost:5432/pigeon
-    username: postgres
-    password: 200361816
-    driver-class-name: org.postgresql.Driver
 
-  jpa:
-    hibernate:
-      ddl-auto: update # Options: validate, update, create, create-drop
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        id.new_generator_mappings: true
+jwt:
+  secret: MyJwtSecretKeyForHairmony
+  expiration: 3600000  # Token expiry time in milliseconds (1 hour)
 
 server:
-  port: 8443 # HTTPS port
-  #ssl:
-   # enabled: true
-   # key-store: classpath:keystore.p12
-    #key-store-password: 200361816
-    #key-store-type: PKCS12
-    #key-alias: pigeonsky
+  port: 8443  # Default port
 
 logging:
   level:
@@ -47,63 +39,3 @@ logging:
     org.springframework.web: DEBUG
     org.springframework.data.jpa: DEBUG
     org.hibernate: INFO
-
-keycloak:
-  auth-server-url: http://localhost:8888/auth
-  realm: pigeonsky
-  resource: your-client-id
-  credentials:
-    secret: your-client-secret
-  use-resource-role-mappings: true
-
-security:
-  oauth2:
-    resourceserver:
-      jwt:
-        issuer-uri: <issuer-uri>
-    client:
-      provider:
-        keycloak:
-          jwk-set-uri: http://localhost:8888/auth/realms/pigeonsky/protocol/openid-connect/certs
-
-rsa:
-  public-key: |
-    -----BEGIN PUBLIC KEY-----
-    MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqtZB1utFXEPS/LVfXU5y
-    K1WxANXEjqXLNyNJbEbYNM+eFs0LL7QcoKFedsEFNPiDYaBsYRrN8PG3LtYRcejm
-    rsuZ00VFWUTl2s0iliUHZHWRMwzjaNo+e8XkQZZKqKxXcnHU/G8znmhLA8SSpXlg
-    3EMR3hDL0Kx7Y2N+cbUTcjS91e2kRHl0J4KR6LGQDTjen/0qR8znE0+jvmFMG1oX
-    Or41GHH02pnW/O2p41Zg4luUGyM3zVCBdcFksyPifTqGS0jTzfEp1fGlFZFu19eK
-    TPAUbeZ3IDgClbCq9sXwxR2Wfa1zfDo7psG9LOWwoHXxjdXbqR2c+nyFfH8v/No8
-    2QIDAQAB
-    -----END PUBLIC KEY-----
-
-  private-key: |
-    -----BEGIN PRIVATE KEY-----
-    MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCq1kHW60VcQ9L8
-    tV9dTnIrVbEA1cSOpcs3I0lsRtg0z54WzQsvtBygoV52wQU0+INhoGxhGs3w8bcu
-    1hFx6Oauy5nTRUVZROXazSKWJQdkdZEzDONo2j57xeRBlkqorFdycdT8bzOeaEsD
-    xJKleWDcQxHeEMvQrHtjY35xtRNyNL3V7aREeXQngpHosZANON6f/SpHzOcTT6O+
-    YUwbWhc6vjUYcfTamdb87anjVmDiW5QbIzfNUIF1wWSzI+J9OoZLSNPN8SnV8aUV
-    kW7X14pM8BRt5ncgOAKVsKr2xfDFHZZ9rXN8Ojumwb0s5bCgdfGN1dupHZz6fIV8
-    fy/82jzZAgMBAAECggEAAtLK8IV/plZYH7VTK8h6vlDanaoKxzVCAimnAl863keS
-    pCuUHGAYi4aTODj5MC6NxFCpjeLKpclm5sMis2xfGKM0if92dZLcDiVPBaZ7xGsl
-    gM+dGAvoVbUX8EYOupIrmVB8jcX8N0lfuQKYDlxOz6Ebo90I80xQdzxrF++/UCc8
-    VMbh057i0/lNyYhm7bCn+9WKczYvMEaFciYUwiygVRIlvrC8KIZntNvYDH47OIrx
-    +czJT7ZKCz/Hz8ciT/v0SBmfs6nam6vievZ6kLp1R60mgQPMDq1JLWghVEAx4sZv
-    awpU4RRcsfFgF2zJpp+SS7gsXCtSmSYKxJVomwsEoQKBgQDSzKtvUS/BnnX2o06U
-    vC1SqtIjZm68S6BSvElIxz2S6lA05OprsD/Qio4bO0yATYkR00lU5XlucuF3dzHX
-    uLc0NYEAJVih6cpdsUIXGCnjgODx0HHSVh51suCU+U1qD5/rQzrVT3j298r/9pxz
-    e2UwSlmsiFKF/dYsYzCms8gkYQKBgQDPd/CNSWNptm1riWlfVM6GyizwbRwDBeoO
-    lRHNFZBqvc6QpsGgNR7LJf1f1oEgPkcdgbmoLBfGRqkyUvkkDxulgUFFPzptgQcw
-    B2c8wWp3WNLpQqeH/XR9+tGRArHHrwEBiFN/UnwhEdxoOzB+EwVAeJVOsF09lA9W
-    jtI6l1zreQKBgDUImPjgjAtCOptaaqKw1RY/M68ETkfBHwyxoh5VQgB8QsGL9g4x
-    wVxN/4KKYKzG1P1PEtvw/6Px8xeDPV7wcecIrvPCcZIKp4b62Y3F3oQGIJG1x20L
-    jY4++pGARyGv3KPrvhl8bQp1PPU4rhO/r61+hyEJCvn66q8wJUVLZccBAoGAKTXv
-    6IC9aJA+J/BBqBgWdhvO1Ws29zrDhWYDBTPVXf6Z+43ERGiI112SeOkI+Tils6zD
-    Di7EAjSjA0YMCyedHEESkAjBOGM65EV0MlNRLKfOLVt6H78u1p9t5VodqkaO8pj7
-    zPy7f24m0+V9+m0Yy/en4NuTidnROiZgiBbs9DECgYEAz/qn6iYOrc+qf+rIHNpc
-    kEixies7tH/fWytzjzofrA4OtodWfFiufZSjPlCQryYy4o0Aom7g6a/eFpCym1Ya
-    G6oiS5rKs4kaGjxgY50BHoCafm8Oy2/SvOBsmuR3AhNdtQYbH1KBIEmYQNrC/hZi
-    9Dcb7YksEXLuYlVFzGN8C2Q=
-    -----END PRIVATE KEY-----

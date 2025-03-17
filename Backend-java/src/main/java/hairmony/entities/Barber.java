@@ -1,0 +1,28 @@
+package hairmony.entities;
+
+import jakarta.persistence.DiscriminatorValue;
+import jakarta.persistence.Entity;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import lombok.*;
+
+@Entity
+@DiscriminatorValue("BARBER")
+@Getter
+@Setter
+@NoArgsConstructor
+public class Barber extends User {
+
+    private String specialty;
+    private double rating;
+
+    @ManyToOne
+    @JoinColumn(name = "barbershop_id")
+    private Barbershop barbershop; // If you have a Barbershop entity
+
+    public Barber(String username, String password, String role, String specialty, double rating) {
+        super(username, password, role);
+        this.specialty = specialty;
+        this.rating = rating;
+    }
+}
