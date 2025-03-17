@@ -25,6 +25,15 @@ public abstract class User {
     // For simplicity, store role as a string: "CLIENT", "BARBER", or "ADMIN"
     private String role;
 
+    @Column(nullable = false, columnDefinition = "integer default 1")
+    private int freeTrialsRemaining;
+
+    @Column(nullable = false, columnDefinition = "integer default 1")
+    private int LiveTrialsRemaining;
+
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private boolean unlimitedAccess;
+
     public User(String username, String password, String role) {
         this.username = username;
         this.password = password;

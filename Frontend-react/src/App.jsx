@@ -18,7 +18,9 @@ import PrivateRoute from "./Security/ProtectRoute";
 // Import your context providers
 import { AuthProvider } from "./contexts/AuthContext";
 import { NotificationsProvider } from "./contexts/NotificationContext";
-
+import PaymentOffers from "./components/Payment/PaymentOffers";
+import PaymentSucsess from "./components/Payment/PaymentSuccess";
+import PaymentCancel from "./components/Payment/PaymentCancel";
 function Home() {
   return (
     <div>
@@ -48,12 +50,16 @@ export default function App() {
             <Route path="/" element={<Home />} />
             <Route path="/register" element={<RegisterForm />} />
             <Route path="/login" element={<LoginForm />} />
-            <Route path="/upload" element={<UploadImage />} />
             
-            {/* Example private route for reservation */}
+            
+            {/* Example private route for reservatin */}
             <Route element={<PrivateRoute />}>
             <Route path="/reservation" element={<ReservationPage />} />
             <Route path="/live" element={<LiveFaceShape />} />
+            <Route path="/upload" element={<UploadImage />} />
+            <Route path="/pay" element={<PaymentOffers />} />
+            <Route path="/PaymentSuccess" element={<PaymentSucsess />} />
+            <Route path="/PaymentCancel" element={<PaymentCancel />} />
             </Route>
 
             {/* Example barber dashboard route */}

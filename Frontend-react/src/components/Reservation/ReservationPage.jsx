@@ -1,38 +1,30 @@
-/**
- * ReservationPage.jsx
- *
- * Allows the user to complete a reservation using faceShape data
- * from the face detection page. Shows barbershops, barbers,
- * recommended hairstyles, etc.
- */
-
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import axios from "axios";
 
 export default function ReservationPage() {
-  // Data from previous page (faceShape + possibly recommendedHairstyles)
   const { state } = useLocation();
   const faceShape = state?.faceShape || "oval";
 
-  // If the previous page provided recommendedHairstyles, we can use them
-  // otherwise we default to trendingHairstyles from the server
   const [trendingHairstyles, setTrendingHairstyles] = useState([]);
   const recommendedHairstyles = state?.recommendedHairstyles || trendingHairstyles;
 
-  // For selecting which hairstyle the user picks
   const [selectedHairstyle, setSelectedHairstyle] = useState(null);
 
-  // Barbershop logic
+  // Location + Barbershops
   const [userLocation, setUserLocation] = useState(null);
   const [barbershops, setBarbershops] = useState([]);
   const [selectedBarbershop, setSelectedBarbershop] = useState(null);
+
+  // Barbers for the selected barbershop
+  const [barbers, setBarbers] = useState([]); // <-- store barbers here
   const [selectedBarber, setSelectedBarber] = useState(null);
 
   const [loading, setLoading] = useState(true);
 
+  // 1) On mount: geolocation + trendingHairstyles
   useEffect(() => {
-    // 1) Attempt geolocation
+    // Attempt geolocation
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
@@ -46,7 +38,7 @@ export default function ReservationPage() {
       }
     );
 
-    // 2) If no recommendedHairstyles were passed, fetch from server
+    // If no recommendedHairstyles in state, fetch from server
     if (!state?.recommendedHairstyles) {
       axios
         .get(`http://localhost:8443/public/trending-hairstyles?faceShape=${faceShape}`)
@@ -59,7 +51,7 @@ export default function ReservationPage() {
     }
   }, [faceShape, state?.recommendedHairstyles]);
 
-  // Fetch barbershops near lat/lng
+  // 2) Fetch barbershops near lat/lng
   const fetchBarbershops = async (lat, lng) => {
     try {
       const res = await axios.get("http://localhost:8443/public/barbershops", {
@@ -73,6 +65,29 @@ export default function ReservationPage() {
     }
   };
 
+  // 3) Fetch barbers for a given barbershop
+  const fetchBarbersForShop = async (shopId) => {
+    try {
+      // For example: GET /public/barbers?shopId=123
+      const res = await axios.get("http://localhost:8443/public/barbers", {
+        params: { shopId },
+      });
+      setBarbers(res.data);
+    } catch (error) {
+      console.error("Error fetching barbers for shop:", error);
+    }
+  };
+
+  // 4) When user clicks a barbershop card
+  const handleSelectBarbershop = (shop) => {
+    setSelectedBarbershop(shop);
+    setSelectedBarber(null);
+    setBarbers([]); // clear old barbers
+    // Now fetch the barbers for this shop
+    fetchBarbersForShop(shop.id);
+  };
+
+  // 5) Submit reservation
   const handleSubmit = (e) => {
     e.preventDefault();
     // Example of sending the reservation
@@ -126,10 +141,7 @@ export default function ReservationPage() {
                         ? "bg-indigo-100 dark:bg-indigo-900/30 border-2 border-indigo-300"
                         : "bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600"
                     }`}
-                    onClick={() => {
-                      setSelectedBarbershop(shop);
-                      setSelectedBarber(null);
-                    }}
+                    onClick={() => handleSelectBarbershop(shop)}
                   >
                     <div className="flex justify-between items-start">
                       <div>
@@ -162,7 +174,7 @@ export default function ReservationPage() {
                   Select Barber at {selectedBarbershop.name}
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {selectedBarbershop.barbers?.map((barber) => (
+                  {barbers.map((barber) => (
                     <div
                       key={barber.id}
                       className={`p-4 rounded-lg cursor-pointer transition-colors ${

@@ -4,6 +4,7 @@ import hairmony.service.CustomUserDetailsService;
 import hairmony.service.JWTUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.*;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -32,41 +33,40 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        // We’ll add a custom JWT filter below
         http
+                .cors(Customizer.withDefaults()) // Use the CorsConfigurationSource bean
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/register", "/auth/login").permitAll()
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(
+                                "/auth/register",
+                                "/auth/login",
+                                "/payment/stripe-success",
+                                "/payment/stripe-cancel",
+                                "/payment/details",
+                                "/notifications/**"
+                        ).permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
-        // Add the JWT authentication filter
-        http.addFilterBefore(new JWTAuthenticationFilter(jwtUtil, userDetailsService),
-                UsernamePasswordAuthenticationFilter.class);
+        http.addFilterBefore(
+                new JWTAuthenticationFilter(jwtUtil, userDetailsService),
+                UsernamePasswordAuthenticationFilter.class
+        );
 
         return http.build();
     }
-
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-
-        // Allow requests from your frontend origin
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:4000"));
-
-        // Allow common HTTP methods
-        configuration.setAllowedMethods(Arrays.asList("GET","POST","PUT","DELETE","OPTIONS"));
-
-        // Allow any headers (e.g. Content-Type, Authorization)
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:4000")); // Frontend origin
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
-
-        // If you need cookies or auth headers to be sent
         configuration.setAllowCredentials(true);
 
-        // Register the CORS configuration for all endpoints
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
+        source.registerCorsConfiguration("/**", configuration); // Apply to all endpoints
         return source;
     }
     @Bean
