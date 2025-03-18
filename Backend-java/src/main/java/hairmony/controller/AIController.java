@@ -1,5 +1,7 @@
 package hairmony.controller;
 
+import hairmony.entities.Haircuts;
+import hairmony.repository.HaircutRepository;
 import lombok.RequiredArgsConstructor;
 import hairmony.service.FaceDetectionService;
 import hairmony.service.FaceShapeDetectorService;
@@ -15,6 +17,7 @@ import java.util.*;
 import java.util.Arrays;
 import java.io.IOException;
 import java.util.Base64;
+import java.util.stream.Collectors;
 
 import static org.bytedeco.opencv.global.opencv_core.BORDER_CONSTANT;
 import static org.bytedeco.opencv.global.opencv_core.copyMakeBorder;
@@ -24,12 +27,13 @@ import static org.bytedeco.opencv.global.opencv_imgproc.resize;
 
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/public")
+@RequestMapping("/AI")
 public class AIController {
 
     private final FaceDetectionService faceDetectionService;
     private final FaceShapeDetectorService faceShapeDetectorService;
     private final FileSupportConverter fileSupportConverter;
+    private final HaircutRepository haircutRepository;
 
     @PostMapping("/analyze-face")
     public ResponseEntity<FaceAnalysisResponse> analyzeFace(@RequestParam("file") MultipartFile file) {
@@ -51,8 +55,8 @@ public class AIController {
             int original_w = original.cols();
             int original_h = original.rows();
             double scale = Math.min(600.0 / original_w, 600.0 / original_h);
-            int new_w = (int)(original_w * scale);
-            int new_h = (int)(original_h * scale);
+            int new_w = (int) (original_w * scale);
+            int new_h = (int) (original_h * scale);
 
             Mat resized = new Mat();
             resize(original, resized, new Size(new_w, new_h), 0, 0, INTER_AREA);
@@ -126,7 +130,7 @@ public class AIController {
             double rect_width_original = faceRect.width() * ratio_x;
             double rect_height_original = faceRect.height() * ratio_y;
             RectDTO originalFaceRect = new RectDTO(
-                    (int)rect_x_original, (int)rect_y_original, (int)rect_width_original, (int)rect_height_original
+                    (int) rect_x_original, (int) rect_y_original, (int) rect_width_original, (int) rect_height_original
             );
 
             // Map Python forehead tip to original space
@@ -138,7 +142,9 @@ public class AIController {
             List<String> hairstyles = getRecommendedHairstyles(shape);
 
             // 10. Build response with original coordinates
-            return ResponseEntity.ok(new FaceAnalysisResponse(
+            return ResponseEntity.ok(new
+
+                    FaceAnalysisResponse(
                     shape,
                     hairstyles,
                     landmarkPointsOriginal,
@@ -200,70 +206,27 @@ public class AIController {
                 } else {
                     System.err.println("Unexpected response format: " + respStr);
                 }
+
             } else {
                 System.err.println("Python com.service returned status: " + response.statusCode());
             }
-        } catch (Exception ex) {
+
+        }
+        catch (Exception ex) {
             ex.printStackTrace();
         }
         return null; // Fallback handled in main logic
     }
 
+
+
     private List<String> getRecommendedHairstyles(String faceShape) {
-        Map<String, List<String>> recommendations = new HashMap<>();
-        recommendations.put("oval", Arrays.asList(
-                "Classic undercut",
-                "Textured quiff",
-                "Side part",
-                "Pompadour"
-        ));
+        List<Haircuts> recommended = haircutRepository.findByFaceShapeIgnoreCase(faceShape);
+        return recommended.stream()
+                .map(Haircuts::getName)
+                .collect(Collectors.toList());
+    }   // -----------------------------
 
-        recommendations.put("round", Arrays.asList(
-                "High fade with pompadour",
-                "Textured crop",
-                "Side-swept undercut",
-                "Spiky hair with short sides"
-        ));
-
-        recommendations.put("oblong", Arrays.asList(
-                "Crew cut",
-                "Side part with mid fade",
-                "Classic taper",
-                "Brush-up hairstyle"
-        ));
-
-        recommendations.put("heart", Arrays.asList(
-                "Textured fringe",
-                "Messy quiff",
-                "Medium-length layered cut",
-                "Tapered sides with volume on top"
-        ));
-
-        recommendations.put("triangle", Arrays.asList(
-                "Longer top with short sides",
-                "Textured waves",
-                "Side-swept fringe",
-                "Classic slicked-back style"
-        ));
-
-        recommendations.put("square", Arrays.asList(
-                "Buzz cut",
-                "Undercut with volume",
-                "Textured top with a fade",
-                "Classic side part"
-        ));
-
-        recommendations.put("diamond", Arrays.asList(
-                "Messy fringe",
-                "Layered medium-length cut",
-                "Tapered cut with volume",
-                "Tousled waves with fade"
-        ));
-
-        return recommendations.getOrDefault(faceShape.toLowerCase(), Collections.emptyList());
-    }
-
-    // -----------------------------
     // DTO Records
     // -----------------------------
     public record FaceAnalysisResponse(
@@ -272,17 +235,20 @@ public class AIController {
             List<PointDTO> landmarks,
             RectDTO faceRect,
             PointDTO foreheadTip
-    ) {}
+    ) {
+    }
 
     public record RectDTO(
             int x,
             int y,
             int width,
             int height
-    ) {}
+    ) {
+    }
 
     public record PointDTO(
             double x,
             double y
-    ) {}
+    ) {
+    }
 }

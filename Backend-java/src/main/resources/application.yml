@@ -13,6 +13,7 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         id.new_generator_mappings: true
+    open-in-view: false  # Corrected syntax
 
 jwt:
   secret: MyJwtSecretKeyForHairmony
@@ -27,3 +28,5 @@ logging:
     org.springframework.web: DEBUG
     org.springframework.data.jpa: DEBUG
     org.hibernate: INFO
+    org.springframework.security: DEBUG  # Corrected syntax
+    org.hibernate.SQL: DEBUG  # Corrected syntax

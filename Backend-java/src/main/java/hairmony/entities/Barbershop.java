@@ -1,5 +1,6 @@
 package hairmony.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.util.List;
@@ -20,7 +21,8 @@ public class Barbershop {
     private double rating;
 
     // Relationship: one barbershop has many barbers
-    @OneToMany(mappedBy = "barbershop")
+    @OneToMany(mappedBy = "barbershop", fetch = FetchType.LAZY)
+    @JsonIgnore
     private List<Barber> barbers;
 
     // constructor(s), getters, setters, etc.

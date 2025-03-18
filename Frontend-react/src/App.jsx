@@ -11,6 +11,7 @@ import LiveFaceShape from "./components/FaceDetection/LiveFaceShape";
 
 // Example Reservation page
 import ReservationPage from "./components/Reservation/ReservationPage";
+import ReservationsPage from "./components/Reservation/ReservationDashboard";
 
 // If you have a PrivateRoute
 import PrivateRoute from "./Security/ProtectRoute";
@@ -55,6 +56,7 @@ export default function App() {
             {/* Example private route for reservatin */}
             <Route element={<PrivateRoute />}>
             <Route path="/reservation" element={<ReservationPage />} />
+            <Route path="/Myreservations" element={<ReservationsPage />} />
             <Route path="/live" element={<LiveFaceShape />} />
             <Route path="/upload" element={<UploadImage />} />
             <Route path="/pay" element={<PaymentOffers />} />
