@@ -32,7 +32,7 @@ export default function ReservationPage() {
   const [paymentDetails, setPaymentDetails] = useState(null)
 
   // Auth
-  const { userId } = useAuth() || { userId: 101 }
+  const { userId } = useAuth()
 
   // Routing
   const location = useLocation()
@@ -920,9 +920,9 @@ export default function ReservationPage() {
                                 >
                                   <div className="aspect-w-1 aspect-h-1">
                                     <img
-                                      src={hairstyle.imageUrl || "/placeholder.svg?height=200&width=200"}
+                                      src={(`src/assets/images/${hairstyle.name}.jpeg`)}
                                       alt={hairstyle.name}
-                                      className="w-full h-40 object-cover"
+                                      className="w-full h-72 object-cover"
                                     />
                                   </div>
 
@@ -1005,9 +1005,9 @@ export default function ReservationPage() {
                               >
                                 <div className="aspect-w-1 aspect-h-1">
                                   <img
-                                    src={hairstyle.imageUrl || "/placeholder.svg?height=200&width=200"}
+                                    src={(`src/assets/images/${hairstyle.name}.jpeg`)}
                                     alt={hairstyle.name}
-                                    className="w-full h-40 object-cover"
+                                    className="w-full h-72 object-cover"
                                   />
                                 </div>
 
@@ -1201,7 +1201,7 @@ export default function ReservationPage() {
                           >
                             <div className="relative">
                               <img
-                                src={barber.photo || "/placeholder.svg?height=200&width=200"}
+                                src={barber.picture || "/placeholder.svg?height=200&width=200"}
                                 alt={barber.name}
                                 className="w-full h-48 object-cover"
                               />

@@ -43,6 +43,7 @@ public class AuthController {
                 newUser = new Client(
                         request.getUsername(),
                         encodedPass,
+                        request.getPicture(),
                         "CLIENT",
                         request.getFaceShape()
                 );
@@ -51,6 +52,7 @@ public class AuthController {
                 newUser = new Barber(
                         request.getUsername(),
                         encodedPass,
+                        request.getPicture(),
                         "BARBER",
                         request.getSpecialty(),
                         request.getRating() != null ? request.getRating() : 0.0
@@ -60,6 +62,7 @@ public class AuthController {
                 newUser = new Admin(
                         request.getUsername(),
                         encodedPass,
+                        request.getPicture(),
                         "ADMIN"
                 );
             }

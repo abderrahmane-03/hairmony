@@ -17,8 +17,8 @@ public class Client extends User {
     @ManyToOne
     private Subscription subscription; // If you have a Subscription entity
 
-    public Client(String username, String password, String role, String faceShape) {
-        super(username, password, role);
+    public Client(String username, String password, String role,String picture, String faceShape) {
+        super(username, password, role, picture);
         this.faceShape = faceShape;
     }
 }

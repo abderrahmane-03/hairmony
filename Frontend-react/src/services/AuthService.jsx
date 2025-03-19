@@ -8,13 +8,13 @@ export const login = async (username, password) => {
     // response.data => { token, role, id }
 
     if (response.data.token) {
-      localStorage.setItem("token", response.data.token);
+      sessionStorage.setItem("token", response.data.token);
     }
     if (response.data.role) {
-      localStorage.setItem("role", response.data.role);
+      sessionStorage.setItem("role", response.data.role);
     }
     if (response.data.id) {
-      localStorage.setItem("id", response.data.id.toString()); // store as string
+      sessionStorage.setItem("id", response.data.id.toString()); // store as string
     }
 
     window.dispatchEvent(new Event('login'));
@@ -26,15 +26,16 @@ export const login = async (username, password) => {
 
 
 export const logout = () => {
-  localStorage.removeItem("token");
-  localStorage.removeItem("role");
+  sessionStorage.removeItem("token");
+  sessionStorage.removeItem("role");
+  sessionStorage.removeItem("id");
 };
 
-export const getToken = () => localStorage.getItem("token");
-export const getRole = () => localStorage.getItem("role");
-export function getUserId() {
-  return localStorage.getItem("id"); 
-}
+export const getToken = () => sessionStorage.getItem("token");
+export const getRole = () => sessionStorage.getItem("role");
+export const getUserId = () => sessionStorage.getItem("id"); 
+
+
 
 
 export const isAuthenticated = () => !!getToken();

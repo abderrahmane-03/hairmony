@@ -26,10 +26,4 @@ public class BarberService {
                 .orElseThrow(() -> new RuntimeException("Barber not found"));
     }
 
-    // If you need to create or update a Barber
-    public Barber createBarber(Barber barber) {
-        return barberRepository.save(barber);
-    }
-
-    // etc.
 }

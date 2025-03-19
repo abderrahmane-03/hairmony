@@ -447,7 +447,11 @@ export default function LiveFaceShape() {
                                 <Link
                                   to="/reservation"
                                   className="inline-flex items-center px-3 py-1 bg-green-600 hover:bg-green-700 rounded-lg text-white text-xs font-medium transition-colors shadow-sm hover:shadow-md"
-                                >
+                                  state={{
+                                    faceShape: faceData.shape,
+                                    recommendedHairstyleNames: Array.isArray(faceData.hairstyles) ? faceData.hairstyles : [],
+                                    selectedHairstyleName: style // Pass the clicked hairstyle name
+                                  }}>
                                   <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path
                                       strokeLinecap="round"
@@ -456,6 +460,8 @@ export default function LiveFaceShape() {
                                       d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                                     />
                                   </svg>
+                            
+                                    
                                   Book Appointment
                                 </Link>
                               </div>

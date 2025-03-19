@@ -23,7 +23,7 @@ import axios from "axios"
 
 export default function ReservationsDashboard() {
   // Auth context to get user info
-  const { userId, role } = useAuth() || { userId: 1, role: "CLIENT" }
+  const { userId, role } = useAuth()
 
   // State
   const [reservations, setReservations] = useState([])
@@ -80,6 +80,7 @@ export default function ReservationsDashboard() {
         } else {
           endpoint = `http://localhost:8443/reservation/client/${userId}`
         }
+        console.log(userId)
 
         const response = await axios.get(endpoint)
         setReservations(response.data)
@@ -93,7 +94,7 @@ export default function ReservationsDashboard() {
     }
 
     fetchReservations()
-  }, [userId, role])
+  }, [])
 
   // Filter reservations based on active tab, status filter, and search query
   useEffect(() => {
