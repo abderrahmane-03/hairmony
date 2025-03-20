@@ -1,7 +1,8 @@
 package hairmony.controller;
 
+import hairmony.dto.ReservationRequestDTO;
+import hairmony.dto.ReservationStatusDTO;
 import hairmony.entities.Reservation;
-import hairmony.service.ReservationRequestDTO;
 import hairmony.service.ReservationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +20,14 @@ public class ReservationController {
     @PostMapping("/create")
     public Reservation createReservation(@RequestBody ReservationRequestDTO dto) {
         return reservationService.createReservation(dto);
+    }
+
+    @PutMapping("/{reservationId}/status")
+    public Reservation updateReservationStatus(
+            @PathVariable Long reservationId,
+            @RequestBody ReservationStatusDTO statusDto
+    ) {
+        return reservationService.updateStatus(reservationId, statusDto.getStatus());
     }
 
     // e.g. GET /api/reservations/barber/123

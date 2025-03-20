@@ -4,6 +4,7 @@ import hairmony.dto.ProductRequest;
 import hairmony.dto.StripeResponse;
 import hairmony.entities.*;
 import hairmony.repository.*;
+import hairmony.service.NotificationService;
 import hairmony.service.ReservationService;
 import hairmony.service.StripeService;
 import jakarta.servlet.http.HttpServletResponse;
@@ -27,6 +28,7 @@ public class PaymentController {
     private final ReservationService reservationService;
     private final ReservationRepository reservationRepository;
     private final HaircutRepository haircutRepository;
+    private final NotificationService notificationService;
 
     @PostMapping("/stripe-checkout")
     public ResponseEntity<StripeResponse> createCheckoutSession(
@@ -112,15 +114,42 @@ public class PaymentController {
                     .orElseThrow(() -> new RuntimeException("Reservation not found"));
             reservation.setStatus("CONFIRMED");
             reservationRepository.save(reservation);
-        } else if (amountPaid == 10.0) {
+        } else if (amountPaid == 70.0) {
+            user.setUnlimitedAccess(true);
+            user.setVIPSubscriber(true);
+            userRepository.save(user);
+            notificationService.createNotification(
+                    user,
+                    "You are a VIP user now Congratulations!"
+            );
+        }else if (amountPaid == 40.0) {
+            user.setNormalSubscriber(true);
+            userRepository.save(user);
+            notificationService.createNotification(
+                    user,
+                    "You are a Subscriber now Congratulations!"
+            );
+        }else if (amountPaid == 10.0) {
             user.setUnlimitedAccess(true);
             userRepository.save(user);
+            notificationService.createNotification(
+                    user,
+                    "You have UnlimitedAccess now Congratulations!"
+            );
         } else if (amountPaid == 5.0) {
             user.setLiveTrialsRemaining(1);
             userRepository.save(user);
+            notificationService.createNotification(
+                    user,
+                    "You have 1 more live camera detection now Congratulations!"
+            );
         } else if (amountPaid == 2.0) {
             user.setFreeTrialsRemaining(1);
             userRepository.save(user);
+            notificationService.createNotification(
+                    user,
+                    "You have 1 more upload face detection now Congratulations!"
+            );
         }
 
         String frontendUrl = "http://localhost:4000/PaymentSuccess?sessionId=" + sessionId;

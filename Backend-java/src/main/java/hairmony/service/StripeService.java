@@ -65,6 +65,7 @@ public class StripeService {
                 .sessionId(session.getId())
                 .sessionUrl(session.getUrl())
                 .build();
+
     }
     public StripeResponse checkoutProducts(ProductRequest productRequest) {
         Stripe.apiKey = "sk_test_51P96uGRsGbsVRyquYCUoPfCE4a4jXhnkgNfNwFFL2NOymgaeNV1EEY0nuCt23aLIOdCF8Hsh89qP8CgR2e1woXO900kmr3C9Jq";

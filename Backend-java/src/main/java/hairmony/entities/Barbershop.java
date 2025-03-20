@@ -19,6 +19,7 @@ public class Barbershop {
     private String name;
     private String address;
     private double rating;
+    private String picture;
 
     // Relationship: one barbershop has many barbers
     @OneToMany(mappedBy = "barbershop", fetch = FetchType.LAZY)

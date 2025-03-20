@@ -5,6 +5,7 @@ import hairmony.exceptions.PaymentRequiredException;
 import hairmony.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import hairmony.dto.ReservationRequestDTO;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -17,8 +18,9 @@ public class ReservationService {
     private final ClientRepository clientRepository;
     private final BarberRepository barberRepository;
     private final HaircutRepository haircutRepository;
+    private final NotificationService  notificationService;
 
-    public Reservation createReservation(hairmony.service.ReservationRequestDTO dto) {
+    public Reservation createReservation(ReservationRequestDTO dto) {
         // Find client and barber
         Client client = clientRepository.findById(dto.getClientId())
                 .orElseThrow(() -> new RuntimeException("Client not found"));
@@ -51,11 +53,24 @@ public class ReservationService {
 
         if (hasFreeHaircut) {
             reservation.setStatus("CONFIRMED");
+            notificationService.createNotification(
+                    client,
+                    "Reservation #" + reservation.getId() + " is confirmed and paid!"
+            );
+
         } else {
             reservation.setStatus("PENDING_PAYMENT");
+            notificationService.createNotification(
+                    client,
+                    "Reservation #" + reservation.getId() + " is confirmed and waiting for payment!"
+            );
         }
 
         reservationRepository.save(reservation);
+        notificationService.createNotification(
+                barber,
+                "Reservation #" + reservation.getId() + " you have a new reservation !"
+        );
 
         // If payment is required, throw exception with reservation details
         if (!hasFreeHaircut) {
@@ -69,6 +84,22 @@ public class ReservationService {
         return reservation;
     }
 
+
+
+    public Reservation updateStatus(Long reservationId, String newStatus) {
+        // 1) Find the reservation
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new RuntimeException("Reservation not found"));
+
+        // 2) Update status
+        reservation.setStatus(newStatus);
+        notificationService.createNotification(
+                reservation.getClient(),
+                "Reservation #" + reservation.getId() + " is changed in status new status #!"+newStatus
+        );
+        // 3) Save
+        return reservationRepository.save(reservation);
+    }
     private int countReservationsThisMonth(Long clientId) {
         List<Reservation> all = reservationRepository.findAll();
         LocalDate now = LocalDate.now();

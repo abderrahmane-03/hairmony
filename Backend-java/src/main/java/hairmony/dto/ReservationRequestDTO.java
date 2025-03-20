@@ -1,4 +1,4 @@
-package hairmony.service;
+package hairmony.dto;
 
 import lombok.Data;
 import java.time.LocalDate;
