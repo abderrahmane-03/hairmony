@@ -29,7 +29,7 @@ export default function Login() {
       // data should be { token, role }
 
       // 2. Update AuthContext
-      login(data.token, data.role);
+      login(data.token, data.role , data.id);
 
       // 3. Dispatch "storage" event if you rely on that for cross-tab updates
       window.dispatchEvent(new Event("storage"));

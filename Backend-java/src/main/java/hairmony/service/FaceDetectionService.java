@@ -1,5 +1,6 @@
 package hairmony.service;
 
+import hairmony.serviceInterfaces.IFaceDetection;
 import org.bytedeco.opencv.global.opencv_core;           // For auto-loading the native libs
 import org.bytedeco.opencv.opencv_core.Mat;
 import org.bytedeco.opencv.opencv_core.Rect;
@@ -8,26 +9,27 @@ import org.bytedeco.opencv.opencv_objdetect.CascadeClassifier;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
-import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 
+import java.io.File;
+import java.io.InputStream;
+
 @Service
-public class FaceDetectionService {
+public class FaceDetectionService implements IFaceDetection {
 
     private final CascadeClassifier faceDetector;
 
-    public FaceDetectionService() throws IOException {
-        // 1) Trigger native library loading (Bytedeco handles it)
+    public FaceDetectionService() throws Exception {
+        // Trigger the native library load
         opencv_core.class.getName();
 
-        // 2) Load the Haar cascade from resources
+        // Load the Haar cascade from resources
         try (InputStream in = new ClassPathResource("haarcascade_frontalface_default.xml").getInputStream()) {
             File tempFile = File.createTempFile("haarcascade", ".xml");
             Files.copy(in, tempFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
             tempFile.deleteOnExit();
 
-            // 3) Create the CascadeClassifier with the temp file
             faceDetector = new CascadeClassifier(tempFile.getAbsolutePath());
             if (faceDetector.empty()) {
                 throw new RuntimeException("Failed to load Haar cascade classifier!");
@@ -35,14 +37,10 @@ public class FaceDetectionService {
         }
     }
 
+    @Override
     public Rect detectFace(Mat image) {
-        // Bytedeco uses RectVector instead of MatOfRect
         RectVector faces = new RectVector();
-
-        // This is Bytedeco's detectMultiScale signature
         faceDetector.detectMultiScale(image, faces);
-
-        // Return the first face if found
         if (faces.size() > 0) {
             return faces.get(0);
         }

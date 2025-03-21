@@ -1,17 +1,20 @@
 package hairmony.controller;
 
+import com.stripe.model.checkout.Session;
 import hairmony.dto.ProductRequest;
 import hairmony.dto.StripeResponse;
-import hairmony.entities.*;
+import hairmony.entities.Haircuts;
+import hairmony.entities.Payment;
+import hairmony.entities.Reservation;
+import hairmony.entities.User;
 import hairmony.repository.*;
-import hairmony.service.ReservationService;
-import hairmony.service.StripeService;
+import hairmony.serviceInterfaces.NotificationServiceInf;
+import hairmony.serviceInterfaces.ReservationServiceInf;
+import hairmony.serviceInterfaces.StripeServiceInf;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import com.stripe.model.checkout.Session;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -21,17 +24,18 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class PaymentController {
 
-    private final StripeService stripeService;
+    private final StripeServiceInf stripeService;           // Using the interface
     private final PaymentRepository paymentRepository;
     private final UserRepository userRepository;
-    private final ReservationService reservationService;
     private final ReservationRepository reservationRepository;
     private final HaircutRepository haircutRepository;
+    private final NotificationServiceInf notificationService;   // Or an interface if you prefer
 
     @PostMapping("/stripe-checkout")
     public ResponseEntity<StripeResponse> createCheckoutSession(
             @RequestParam Long userId,
             @RequestBody ProductRequest productRequest) {
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -43,6 +47,7 @@ public class PaymentController {
         payment.setStatus("PENDING");
         paymentRepository.save(payment);
 
+        // Call interface method
         StripeResponse stripeResponse = stripeService.checkoutProducts(productRequest);
         payment.setSessionId(stripeResponse.getSessionId());
         paymentRepository.save(payment);
@@ -54,6 +59,7 @@ public class PaymentController {
     public ResponseEntity<StripeResponse> createReservationCheckoutSession(
             @RequestParam Long reservationId,
             @RequestParam Long userId) {
+
         Reservation reservation = reservationRepository.findById(reservationId)
                 .orElseThrow(() -> new RuntimeException("Reservation not found"));
         if (!"PENDING_PAYMENT".equals(reservation.getStatus())) {
@@ -95,6 +101,7 @@ public class PaymentController {
     public ResponseEntity<Void> handleStripeSuccess(
             @RequestParam String sessionId,
             HttpServletResponse response) throws Exception {
+
         Payment payment = paymentRepository.findBySessionId(sessionId)
                 .orElseThrow(() -> new RuntimeException("No payment found for session: " + sessionId));
         payment.setStatus("SUCCESS");
@@ -112,15 +119,47 @@ public class PaymentController {
                     .orElseThrow(() -> new RuntimeException("Reservation not found"));
             reservation.setStatus("CONFIRMED");
             reservationRepository.save(reservation);
+            notificationService.createNotification(
+                    user,
+                    "Your payment of $" + amountPaid + " was successful!, your reservation is confirmed!"
+            );
+
+        } else if (amountPaid == 70.0) {
+            user.setUnlimitedAccess(true);
+            user.setVIPSubscriber(true);
+            userRepository.save(user);
+            notificationService.createNotification(
+                    user,
+                    "You are a VIP user now. Congratulations!"
+            );
+        } else if (amountPaid == 40.0) {
+            user.setNormalSubscriber(true);
+            userRepository.save(user);
+            notificationService.createNotification(
+                    user,
+                    "You are a Subscriber now. Congratulations!"
+            );
         } else if (amountPaid == 10.0) {
             user.setUnlimitedAccess(true);
             userRepository.save(user);
+            notificationService.createNotification(
+                    user,
+                    "You have UnlimitedAccess now. Congratulations!"
+            );
         } else if (amountPaid == 5.0) {
             user.setLiveTrialsRemaining(1);
             userRepository.save(user);
+            notificationService.createNotification(
+                    user,
+                    "You have 1 more live camera detection now. Congratulations!"
+            );
         } else if (amountPaid == 2.0) {
             user.setFreeTrialsRemaining(1);
             userRepository.save(user);
+            notificationService.createNotification(
+                    user,
+                    "You have 1 more upload face detection now. Congratulations!"
+            );
         }
 
         String frontendUrl = "http://localhost:4000/PaymentSuccess?sessionId=" + sessionId;

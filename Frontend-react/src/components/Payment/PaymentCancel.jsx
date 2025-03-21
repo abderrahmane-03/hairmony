@@ -37,7 +37,7 @@ export default function PaymentCancelPage() {
           console.error("Fetch failed, reloading page in 3 seconds...", err)
           setTimeout(() => {
             window.location.reload()
-          }, 3000)
+          }, 100)
         })
     }
 

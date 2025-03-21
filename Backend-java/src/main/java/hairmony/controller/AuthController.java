@@ -1,80 +1,62 @@
 package hairmony.controller;
 
-import hairmony.dto.*;
-import hairmony.entities.*;
+import hairmony.dto.AuthRequest;
+import hairmony.dto.AuthResponse;
+import hairmony.entities.User;
 import hairmony.repository.UserRepository;
 import hairmony.service.JWTUtil;
-import org.springframework.beans.factory.annotation.Autowired;
+import hairmony.serviceInterfaces.AuthServiceInf;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/auth")
+@RequiredArgsConstructor
 public class AuthController {
 
-    @Autowired
-    private AuthenticationManager authManager;
+    private final AuthenticationManager authManager;
+    private final UserRepository userRepository;
+    private final JWTUtil jwtUtil;
+    private final AuthServiceInf authService;  // inject the interface
 
-    @Autowired
-    private UserRepository userRepository;
+    // Registration endpoint consuming multipart form-data
+    @PostMapping(
+            value = "/register",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    public String register(
+            @RequestParam("username") String username,
+            @RequestParam("password") String password,
+            @RequestParam("role") String role,
+            @RequestParam(name="picture", required=false) MultipartFile pictureFile,
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-
-    @Autowired
-    private JWTUtil jwtUtil;
-
-    @PostMapping("/register")
-    public String register(@RequestBody RegisterRequest request) {
-        // Check if username already exists
-        if (userRepository.findByUsername(request.getUsername()).isPresent()) {
-            return "Username already taken!";
-        }
-
-        // Hash the password
-        String encodedPass = passwordEncoder.encode(request.getPassword());
-
-        // Create user based on role
-        User newUser;
-        switch (request.getRole().toUpperCase()) {
-            case "CLIENT" -> {
-                newUser = new Client(
-                        request.getUsername(),
-                        encodedPass,
-                        "CLIENT",
-                        request.getFaceShape()
-                );
-            }
-            case "BARBER" -> {
-                newUser = new Barber(
-                        request.getUsername(),
-                        encodedPass,
-                        "BARBER",
-                        request.getSpecialty(),
-                        request.getRating() != null ? request.getRating() : 0.0
-                );
-            }
-            case "ADMIN" -> {
-                newUser = new Admin(
-                        request.getUsername(),
-                        encodedPass,
-                        "ADMIN"
-                );
-            }
-            default -> {
-                return "Invalid role. Must be CLIENT, BARBER, or ADMIN.";
-            }
-        }
-
-        userRepository.save(newUser);
-        return "Registration successful for " + request.getUsername();
+            @RequestParam(name="barbershopId", required=false, defaultValue="") String barbershopId,
+            @RequestParam(name="barbershopName", required=false) String barbershopName,
+            @RequestParam(name="barbershopAddress", required=false) String barbershopAddress,
+            @RequestParam(name="barbershopPicture", required=false) MultipartFile barbershopPic
+    ) {
+        // Delegate to the service
+        return authService.registerUser(
+                username,
+                password,
+                role,
+                pictureFile,
+                barbershopId,
+                barbershopName,
+                barbershopAddress,
+                barbershopPic
+        );
     }
 
+    // Example login
     @PostMapping("/login")
     public AuthResponse login(@RequestBody AuthRequest request) {
-        // Perform authentication
+        // 1) Use Spring Security to authenticate
         Authentication auth = authManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         request.getUsername(),
@@ -82,10 +64,11 @@ public class AuthController {
                 )
         );
 
-        // If we get here, authentication was successful
-        User user = userRepository.findByUsername(request.getUsername()).orElseThrow();
+        // 2) If we get here, authentication is successful
+        User user = userRepository.findByUsername(request.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
         String token = jwtUtil.generateToken(user.getUsername(), user.getRole());
 
-        return new AuthResponse(token,user.getRole(),user.getId());
+        return new AuthResponse(token, user.getRole(), user.getId());
     }
 }

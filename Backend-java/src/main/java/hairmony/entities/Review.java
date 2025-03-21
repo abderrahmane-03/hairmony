@@ -1,6 +1,7 @@
 package hairmony.entities;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -17,17 +18,20 @@ public class Review {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private int rating;         // e.g. 1..5
-    private String comment;     // "Great haircut!"
+    private int rating;
+    private String comment;
     private LocalDateTime createdAt = LocalDateTime.now();
 
-    // Relationship to Client
     @ManyToOne
     @JoinColumn(name = "client_id")
     private Client client;
 
-    // Relationship to Barber
     @ManyToOne
     @JoinColumn(name = "barber_id")
     private Barber barber;
+
+    @JsonIgnore  // <--- Add this to avoid infinite loop
+    @OneToOne
+    @JoinColumn(name = "reservation_id", unique = true)
+    private Reservation reservation;
 }

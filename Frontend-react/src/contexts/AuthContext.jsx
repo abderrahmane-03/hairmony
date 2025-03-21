@@ -39,7 +39,7 @@ export function AuthProvider({ children }) {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
   const login = (token, role, userId) => {
-    dispatch({ type: "LOGIN", payload: { role, userId } });
+    dispatch({ type: "LOGIN", payload: { role, userId ,token } });
   };
 
   const logout = () => {

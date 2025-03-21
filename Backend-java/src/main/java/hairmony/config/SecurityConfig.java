@@ -11,6 +11,7 @@ import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.*;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -31,6 +32,7 @@ public class SecurityConfig {
     @Autowired
     private JWTUtil jwtUtil;
 
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
@@ -48,7 +50,9 @@ public class SecurityConfig {
                                 "/notifications/**",
                                 "/barbers",
                                 "/barbershops",
-                                "/reservations"
+                                "/reservations",
+                                "/uploads/**",
+                                "reviews/rate"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

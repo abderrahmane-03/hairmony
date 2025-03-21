@@ -20,8 +20,8 @@ public class Barber extends User {
     @JoinColumn(name = "barbershop_id")
     private Barbershop barbershop; // If you have a Barbershop entity
 
-    public Barber(String username, String password, String role, String specialty, double rating) {
-        super(username, password, role);
+    public Barber(String username, String password, String role,String picture,String specialty, double rating) {
+        super(username, password, role,picture);
         this.specialty = specialty;
         this.rating = rating;
     }

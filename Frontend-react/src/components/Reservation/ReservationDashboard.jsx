@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { useAuth } from "../../contexts/AuthContext"
 import {
   Calendar,
@@ -23,7 +23,7 @@ import axios from "axios"
 
 export default function ReservationsDashboard() {
   // Auth context to get user info
-  const { userId, role } = useAuth() || { userId: 1, role: "CLIENT" }
+  const { userId, role } = useAuth()
 
   // State
   const [reservations, setReservations] = useState([])
@@ -42,9 +42,8 @@ export default function ReservationsDashboard() {
   const [ratingOpen, setRatingOpen] = useState(false)
   const [ratingValue, setRatingValue] = useState(0)
   const [ratingComment, setRatingComment] = useState("")
-  const [ratingImage, setRatingImage] = useState(null)
-  const [ratingImagePreview, setRatingImagePreview] = useState(null)
-  const [ratingReservationId, setRatingReservationId] = useState(null)
+  const [ratingBarberId, setRatingBarberId] = useState(null)
+  const [reservationId, setReservationId] = useState("")
 
   // Refs for custom dropdowns
   const statusDropdownRef = useRef(null)
@@ -70,30 +69,71 @@ export default function ReservationsDashboard() {
   }, [])
 
   // Fetch reservations
-  useEffect(() => {
-    const fetchReservations = async () => {
-      setLoading(true)
-      try {
-        let endpoint = ""
-        if (role === "BARBER") {
-          endpoint = `http://localhost:8443/reservation/barber/${userId}`
-        } else {
-          endpoint = `http://localhost:8443/reservation/client/${userId}`
-        }
-
-        const response = await axios.get(endpoint)
-        setReservations(response.data)
-        setError("")
-      } catch (err) {
-        console.error("Error fetching reservations:", err)
-        setError("Failed to load reservations. Please try again later.")
-      } finally {
-        setLoading(false)
+  const fetchReservations = useCallback(async () => {
+    setLoading(true);
+    try {
+      let endpoint = "";
+      if (role === "BARBER") {
+        endpoint = `http://localhost:8443/reservation/barber/${userId}`;
+      } else {
+        endpoint = `http://localhost:8443/reservation/client/${userId}`;
       }
-    }
 
-    fetchReservations()
-  }, [userId, role])
+      const response = await axios.get(endpoint);
+      setReservations(response.data);
+      setError("");
+    } catch (err) {
+      console.error("Error fetching reservations:", err);
+      setError("Failed to load reservations. Please try again later.");
+    } finally {
+      setLoading(false);
+    }
+  }, [userId, role]);
+
+  // 2) Call `fetchReservations` once on mount (and whenever userId/role changes)
+  useEffect(() => {
+    fetchReservations();
+  }, [fetchReservations]);
+
+  const handlePaymentConfirmation = async (resId) => {
+    
+    try {
+      setLoading(true)
+      // Make a POST request to the Stripe checkout endpoint
+      const response = await axios.post(
+        "http://localhost:8443/payment/stripe-checkout-reservation",
+        null, // No request body needed
+        {
+          params: {
+            reservationId: resId,
+            userId: userId,
+          },
+        },
+      )
+
+      // Redirect to the Stripe checkout URL
+      if (response.data && response.data.sessionUrl) {
+        window.location.href = response.data.sessionUrl
+      } else {
+        throw new Error("No checkout URL received from server")
+      }
+    } catch (error) {
+      console.error("Payment redirection failed:", error)
+      setError("Failed to process payment. Please try again.")
+    } finally {
+      setLoading(false)
+    }
+  }
+  // Helper function to safely parse ISO dates
+  const safeParseISO = (dateStr, timeStr) => {
+    if (!dateStr || !timeStr) return new Date() // Return current date as fallback
+    try {
+      return parseISO(`${dateStr}T${timeStr}`)
+    } catch (error) {
+      console.error("Error parsing date:", error)
+      return new Date() // Return current date as fallback
+    }
+  }
 
   // Filter reservations based on active tab, status filter, and search query
   useEffect(() => {
@@ -101,18 +141,22 @@ export default function ReservationsDashboard() {
 
     // Filter by tab (upcoming, past, all)
     if (activeTab === "upcoming") {
-      filtered = filtered.filter(
-        (res) =>
+      filtered = filtered.filter((res) => {
+        if (!res.date || !res.time) return false
+        return (
           (res.status === "PENDING" || res.status === "CONFIRMED") &&
-          isAfter(parseISO(`${res.date}T${res.time}`), new Date()),
-      )
+          isAfter(safeParseISO(res.date, res.time), new Date())
+        )
+      })
     } else if (activeTab === "past") {
-      filtered = filtered.filter(
-        (res) =>
+      filtered = filtered.filter((res) => {
+        if (!res.date || !res.time) return false
+        return (
           res.status === "COMPLETED" ||
           res.status === "CANCELLED" ||
-          isBefore(parseISO(`${res.date}T${res.time}`), new Date()),
-      )
+          isBefore(safeParseISO(res.date, res.time), new Date())
+        )
+      })
     }
 
     // Apply status filter
@@ -122,16 +166,16 @@ export default function ReservationsDashboard() {
 
     // Apply date range filter
     if (dateRange === "today") {
-      filtered = filtered.filter((res) => isToday(parseISO(res.date)))
+      filtered = filtered.filter((res) => res.date && isToday(parseISO(res.date)))
     } else if (dateRange === "week") {
       const oneWeekFromNow = addDays(new Date(), 7)
       filtered = filtered.filter(
-        (res) => isAfter(parseISO(res.date), new Date()) && isBefore(parseISO(res.date), oneWeekFromNow),
+        (res) => res.date && isAfter(parseISO(res.date), new Date()) && isBefore(parseISO(res.date), oneWeekFromNow),
       )
     } else if (dateRange === "month") {
       const oneMonthFromNow = addDays(new Date(), 30)
       filtered = filtered.filter(
-        (res) => isAfter(parseISO(res.date), new Date()) && isBefore(parseISO(res.date), oneMonthFromNow),
+        (res) => res.date && isAfter(parseISO(res.date), new Date()) && isBefore(parseISO(res.date), oneMonthFromNow),
       )
     }
 
@@ -140,10 +184,10 @@ export default function ReservationsDashboard() {
       const query = searchQuery.toLowerCase()
       filtered = filtered.filter(
         (res) =>
-          res.clientName?.toLowerCase().includes(query) ||
-          res.barberName?.toLowerCase().includes(query) ||
+          res.client?.username?.toLowerCase().includes(query) ||
+          res.barber?.username?.toLowerCase().includes(query) ||
           res.hairstyleChosen?.toLowerCase().includes(query) ||
-          res.barbershopName?.toLowerCase().includes(query),
+          res.barber?.barbershop?.name?.toLowerCase().includes(query),
       )
     }
 
@@ -153,7 +197,7 @@ export default function ReservationsDashboard() {
   // Handle status change
   const handleStatusChange = async (reservationId, newStatus) => {
     try {
-      await axios.put(`http://localhost:8443/reservations/${reservationId}/status`, {
+      await axios.put(`http://localhost:8443/reservation/${reservationId}/status`, {
         status: newStatus,
       })
 
@@ -188,64 +232,42 @@ export default function ReservationsDashboard() {
   // Handle rating submission
   const handleRatingSubmit = async (e) => {
     e.preventDefault()
-
     if (!ratingValue || ratingValue < 1) {
       alert("Please select a rating")
       return
     }
 
     try {
-      // Create form data for image upload
-      const formData = new FormData()
-      formData.append("reservationId", ratingReservationId)
-      formData.append("rating", ratingValue)
-      formData.append("comment", ratingComment)
-
-      if (ratingImage) {
-        formData.append("image", ratingImage)
+      // We'll just send JSON
+      const payload = {
+        reservationId: reservationId,
+        barberId: ratingBarberId,
+        rating: ratingValue,
+        comment: ratingComment,
+        clientId: userId, // optional if you track the user
       }
 
-      // Send rating to server
-      await axios.post("http://localhost:8443/ratings", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
+      await axios.post("http://localhost:8443/reviews/rate", payload, {
+        headers: { "Content-Type": "application/json" },
       })
 
-      // Update local state to show rating was submitted
-      setReservations((prev) => prev.map((res) => (res.id === ratingReservationId ? { ...res, rated: true } : res)))
-
-      // Close rating modal
-      setRatingOpen(false)
-      setRatingValue(0)
-      setRatingComment("")
-      setRatingImage(null)
-      setRatingImagePreview(null)
-      setRatingReservationId(null)
-
       alert("Thank you for your rating!")
+
+      setRatingOpen(false)
+      await fetchReservations();
+      // Close the modal
     } catch (err) {
       console.error("Error submitting rating:", err)
       alert("Failed to submit rating. Please try again.")
     }
   }
 
-  // Handle image upload for rating
-  const handleImageChange = (e) => {
-    const file = e.target.files[0]
-    if (file) {
-      setRatingImage(file)
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setRatingImagePreview(reader.result)
-      }
-      reader.readAsDataURL(file)
-    }
-  }
-
   // Open rating modal
-  const openRatingModal = (reservationId) => {
-    setRatingReservationId(reservationId)
+  const openRatingModal = (reservation) => {
+    setReservationId(reservation.id)
+    setRatingBarberId(reservation.barber?.id)
+    setRatingValue(0)
+    setRatingComment("")
     setRatingOpen(true)
   }
 
@@ -285,7 +307,7 @@ export default function ReservationsDashboard() {
       default:
         return (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600">
-            {status}
+            {status || "Unknown"}
           </span>
         )
     }
@@ -538,31 +560,28 @@ export default function ReservationsDashboard() {
         <div className="grid w-full grid-cols-3 mb-4 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
           <button
             onClick={() => setActiveTab("upcoming")}
-            className={`py-2 text-sm font-medium rounded-md transition-colors ${
-              activeTab === "upcoming"
+            className={`py-2 text-sm font-medium rounded-md transition-colors ${activeTab === "upcoming"
                 ? "bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 shadow-sm"
                 : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-            }`}
+              }`}
           >
             Upcoming
           </button>
           <button
             onClick={() => setActiveTab("past")}
-            className={`py-2 text-sm font-medium rounded-md transition-colors ${
-              activeTab === "past"
+            className={`py-2 text-sm font-medium rounded-md transition-colors ${activeTab === "past"
                 ? "bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 shadow-sm"
                 : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-            }`}
+              }`}
           >
             Past
           </button>
           <button
             onClick={() => setActiveTab("all")}
-            className={`py-2 text-sm font-medium rounded-md transition-colors ${
-              activeTab === "all"
+            className={`py-2 text-sm font-medium rounded-md transition-colors ${activeTab === "all"
                 ? "bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 shadow-sm"
                 : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-            }`}
+              }`}
           >
             All
           </button>
@@ -572,7 +591,7 @@ export default function ReservationsDashboard() {
       </div>
 
       {/* Reservation Details Modal */}
-      {detailsOpen && (
+      {detailsOpen && selectedReservation && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full mx-4 overflow-hidden">
             <div className="p-6">
@@ -591,15 +610,15 @@ export default function ReservationsDashboard() {
                 </button>
               </div>
 
-              {selectedReservation && (
-                <div className="space-y-4 py-4">
-                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <h3 className="font-semibold text-gray-900 dark:text-white">Appointment Info</h3>
-                      {getStatusBadge(selectedReservation.status)}
-                    </div>
+              <div className="space-y-4 py-4">
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <h3 className="font-semibold text-gray-900 dark:text-white">Appointment Info</h3>
+                    {getStatusBadge(selectedReservation.status)}
+                  </div>
 
-                    <div className="space-y-2 text-sm">
+                  <div className="space-y-2 text-sm">
+                    {selectedReservation.date && selectedReservation.time && (
                       <div className="flex items-start">
                         <Calendar className="h-4 w-4 mr-2 text-gray-500 mt-0.5" />
                         <div>
@@ -609,7 +628,9 @@ export default function ReservationsDashboard() {
                           <p className="text-gray-700 dark:text-gray-300">{selectedReservation.time}</p>
                         </div>
                       </div>
+                    )}
 
+                    {selectedReservation.hairstyleChosen && (
                       <div className="flex items-start">
                         <Scissors className="h-4 w-4 mr-2 text-gray-500 mt-0.5" />
                         <div>
@@ -617,82 +638,59 @@ export default function ReservationsDashboard() {
                           <p className="text-gray-700 dark:text-gray-300">{selectedReservation.hairstyleChosen}</p>
                         </div>
                       </div>
+                    )}
 
+                    {selectedReservation.barber?.barbershop && (
                       <div className="flex items-start">
                         <MapPin className="h-4 w-4 mr-2 text-gray-500 mt-0.5" />
                         <div>
                           <p className="text-gray-500 dark:text-gray-400">Location</p>
                           <p className="text-gray-700 dark:text-gray-300">
-                            {selectedReservation.barbershopName || "Barbershop Name"}
+                            {selectedReservation.barber.barbershop.name || "Barbershop Name"}
                           </p>
                           <p className="text-gray-700 dark:text-gray-300">
-                            {selectedReservation.barbershopAddress || "Barbershop Address"}
+                            {selectedReservation.barber.barbershop.address || "Barbershop Address"}
+                          </p>
+                          <p className="text-gray-700 dark:text-gray-300">
+                            {selectedReservation.barber.username || "Barber Name"}
                           </p>
                         </div>
                       </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-                    <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
-                      {role === "BARBER" ? "Client" : "Barber"}
-                    </h3>
-
-                    <div className="flex items-center">
-                      <div className="h-10 w-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center mr-3">
-                        <User className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900 dark:text-white">
-                          {role === "BARBER" ? selectedReservation.clientName : selectedReservation.barberName}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {selectedReservation.notes && (
-                    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-                      <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Notes</h3>
-                      <p className="text-gray-700 dark:text-gray-300 text-sm italic">{selectedReservation.notes}</p>
-                    </div>
-                  )}
-
-                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-                    <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Payment</h3>
-                    <div className="flex justify-between">
-                      <span className="text-gray-700 dark:text-gray-300">Total</span>
-                      <span className="font-bold text-indigo-600 dark:text-indigo-400">
-                        ${selectedReservation.price.toFixed(2)}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row gap-2 pt-4">
-                    {selectedReservation.status === "PENDING" && (
-                      <>
-                        <button
-                          onClick={() => handleStatusChange(selectedReservation.id, "CANCELLED")}
-                          className="px-4 py-2 border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center justify-center"
-                        >
-                          <XCircle className="h-4 w-4 mr-2" />
-                          Cancel
-                        </button>
-
-                        {role === "BARBER" && (
-                          <button
-                            onClick={() => handleStatusChange(selectedReservation.id, "CONFIRMED")}
-                            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg flex items-center justify-center"
-                          >
-                            <CheckCircle className="h-4 w-4 mr-2" />
-                            Confirm
-                          </button>
-                        )}
-                      </>
                     )}
+                  </div>
+                </div>
 
-                    {selectedReservation.status === "CONFIRMED" && (
-                      <>
-                        {role === "CLIENT" && (
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
+                    {role === "BARBER" ? "Client" : "Barber"}
+                  </h3>
+
+                  <div className="flex items-center">
+                    <div className="h-10 w-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center mr-3">
+                      <User className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900 dark:text-white">
+                        {role === "BARBER"
+                          ? selectedReservation.client?.username
+                          : selectedReservation.barber?.username}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {selectedReservation.notes && (
+                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                    <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Notes</h3>
+                    <p className="text-gray-700 dark:text-gray-300 italic">{selectedReservation.notes}</p>
+                  </div>
+                )}
+
+                <div className="flex flex-col sm:flex-row gap-2 pt-4">
+                  {selectedReservation.status === "PENDING_PAYMENT" && (
+                    <>
+                      {role === "CLIENT" && (
+                        <>
                           <button
                             onClick={() => handleStatusChange(selectedReservation.id, "CANCELLED")}
                             className="px-4 py-2 border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center justify-center"
@@ -700,51 +698,83 @@ export default function ReservationsDashboard() {
                             <XCircle className="h-4 w-4 mr-2" />
                             Cancel
                           </button>
-                        )}
+                          <button
+                            onClick={() =>handlePaymentConfirmation(selectedReservation.id)}
+                            className="px-4 py-2 border border-green-300 dark:border-green-800 text-green-600 dark:text-green-400 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 flex items-center justify-center"
+                          >
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Pay
+                          </button>
+                        </>
 
-                        {role === "BARBER" && (
-                          <>
-                            <button
-                              onClick={() => handleStatusChange(selectedReservation.id, "COMPLETED")}
-                              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center justify-center"
-                            >
-                              <CheckCircle className="h-4 w-4 mr-2" />
-                              Mark as Completed
-                            </button>
-                            <button
-                              onClick={() => handleStatusChange(selectedReservation.id, "NO_SHOW")}
-                              className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg flex items-center justify-center"
-                            >
-                              <XCircle className="h-4 w-4 mr-2" />
-                              Mark as No-Show
-                            </button>
-                          </>
-                        )}
-                      </>
-                    )}
+                      )}
 
-                    {selectedReservation.status === "COMPLETED" && role === "CLIENT" && !selectedReservation.rated && (
-                      <button
-                        onClick={() => openRatingModal(selectedReservation.id)}
-                        className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg flex items-center justify-center"
-                      >
-                        <Star className="h-4 w-4 mr-2" />
-                        Rate Barber
-                      </button>
-                    )}
-
-                    {(selectedReservation.status === "COMPLETED" || selectedReservation.status === "CANCELLED") &&
-                      role === "CLIENT" && (
-                        <a
-                          href="/reservation"
+                      {role === "BARBER" && (
+                        <button
+                          onClick={() => handleStatusChange(selectedReservation.id, "CONFIRMED")}
                           className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg flex items-center justify-center"
                         >
-                          Book Again
-                        </a>
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          Confirm
+                        </button>
                       )}
-                  </div>
+                    </>
+                  )}
+
+                  {selectedReservation.status === "CONFIRMED" && (
+                    <>
+                      {role === "CLIENT" && (
+                        <button
+                          onClick={() => handleStatusChange(selectedReservation.id, "CANCELLED")}
+                          className="px-4 py-2 border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center justify-center"
+                        >
+                          <XCircle className="h-4 w-4 mr-2" />
+                          Cancel
+                        </button>
+                      )}
+
+                      {role === "BARBER" && (
+                        <>
+                          <button
+                            onClick={() => handleStatusChange(selectedReservation.id, "COMPLETED")}
+                            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center justify-center"
+                          >
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Mark as Completed
+                          </button>
+                          <button
+                            onClick={() => handleStatusChange(selectedReservation.id, "NO_SHOW")}
+                            className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg flex items-center justify-center"
+                          >
+                            <XCircle className="h-4 w-4 mr-2" />
+                            Mark as No-Show
+                          </button>
+                        </>
+                      )}
+                    </>
+                  )}
+
+                  {selectedReservation.status === "COMPLETED" && role === "CLIENT" && !selectedReservation.review && (
+                    <button
+                      onClick={() => openRatingModal(selectedReservation)}
+                      className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg flex items-center justify-center"
+                    >
+                      <Star className="h-4 w-4 mr-2" />
+                      Rate Barber
+                    </button>
+                  )}
+
+                  {(selectedReservation.status === "COMPLETED" || selectedReservation.status === "CANCELLED") &&
+                    role === "CLIENT" && (
+                      <a
+                        href="/reservation"
+                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg flex items-center justify-center"
+                      >
+                        Book Again
+                      </a>
+                    )}
                 </div>
-              )}
+              </div>
             </div>
           </div>
         </div>
@@ -784,9 +814,8 @@ export default function ReservationsDashboard() {
                         className="p-1 focus:outline-none focus:ring-0"
                       >
                         <Star
-                          className={`h-8 w-8 ${
-                            star <= ratingValue ? "text-yellow-500 fill-yellow-500" : "text-gray-300 dark:text-gray-600"
-                          }`}
+                          className={`h-8 w-8 ${star <= ratingValue ? "text-yellow-500 fill-yellow-500" : "text-gray-300 dark:text-gray-600"
+                            }`}
                         />
                       </button>
                     ))}
@@ -805,67 +834,6 @@ export default function ReservationsDashboard() {
                     placeholder="Share your experience..."
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Upload a photo (Optional)
-                  </label>
-                  <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-lg">
-                    {ratingImagePreview ? (
-                      <div className="space-y-2">
-                        <img
-                          src={ratingImagePreview || "/placeholder.svg"}
-                          alt="Preview"
-                          className="mx-auto h-32 w-auto object-cover rounded-lg"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setRatingImage(null)
-                            setRatingImagePreview(null)
-                          }}
-                          className="text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="space-y-1 text-center">
-                        <svg
-                          className="mx-auto h-12 w-12 text-gray-400"
-                          stroke="currentColor"
-                          fill="none"
-                          viewBox="0 0 48 48"
-                        >
-                          <path
-                            d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                            strokeWidth={2}
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                        <div className="flex text-sm text-gray-600 dark:text-gray-400">
-                          <label
-                            htmlFor="file-upload"
-                            className="relative cursor-pointer bg-white dark:bg-gray-700 rounded-md font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 focus-within:outline-none"
-                          >
-                            <span>Upload a file</span>
-                            <input
-                              id="file-upload"
-                              name="file-upload"
-                              type="file"
-                              accept="image/*"
-                              className="sr-only"
-                              onChange={handleImageChange}
-                            />
-                          </label>
-                          <p className="pl-1">or drag and drop</p>
-                        </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">PNG, JPG, GIF up to 10MB</p>
-                      </div>
-                    )}
-                  </div>
                 </div>
 
                 <div className="flex justify-end space-x-3 pt-4">
@@ -916,150 +884,187 @@ export default function ReservationsDashboard() {
 
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredReservations.map((reservation) => {
-          const isExpanded = expandedCards.includes(reservation.id)
-          const isPast = isBefore(parseISO(`${reservation.date}T${reservation.time}`), new Date())
-          const isToday = format(parseISO(reservation.date), "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd")
+        {filteredReservations
+          .filter((reservation) => !!reservation) // Filter first
+          .map((reservation) => {
+            const isExpanded = expandedCards.includes(reservation.id);
+            let isPast = false;
+            let isToday = false;
 
-          return (
-            <div
-              key={reservation.id}
-              className={`bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden transition-all duration-300 ${
-                isToday ? "border-l-4 border-l-blue-500" : isPast ? "opacity-80" : ""
-              }`}
-            >
-              <div className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="font-bold text-lg text-gray-900 dark:text-white">{reservation.hairstyleChosen}</h3>
-                    <p className="text-gray-500 dark:text-gray-400 text-sm">
-                      {format(parseISO(reservation.date), "EEEE, MMMM d, yyyy")} • {reservation.time}
-                    </p>
-                  </div>
-                  {getStatusBadge(reservation.status)}
-                </div>
+            if (reservation.date && reservation.time) {
+              try {
+                const reservationDate = safeParseISO(reservation.date, reservation.time);
+                isPast = isBefore(reservationDate, new Date());
+                isToday = format(parseISO(reservation.date), "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd");
+              } catch (error) {
+                console.error(error, reservation.id);
+              }
+            }
 
-                <div className="space-y-3">
-                  <div className="flex items-center">
-                    <User className="h-4 w-4 text-gray-400 mr-2" />
-                    <span className="text-gray-700 dark:text-gray-300">
-                      {role === "BARBER" ? reservation.clientName : reservation.barberName}
-                    </span>
-                  </div>
-
-                  {isExpanded && (
-                    <>
-                      <div className="flex items-center">
-                        <MapPin className="h-4 w-4 text-gray-400 mr-2" />
-                        <span className="text-gray-700 dark:text-gray-300">
-                          {reservation.barbershopName || "Barbershop Name"}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center">
-                        <Scissors className="h-4 w-4 text-gray-400 mr-2" />
-                        <span className="text-gray-700 dark:text-gray-300">{reservation.hairstyleChosen}</span>
-                      </div>
-
-                      <div className="flex items-center">
-                        <Clock className="h-4 w-4 text-gray-400 mr-2" />
-                        <span className="text-gray-700 dark:text-gray-300">Duration: 30 min</span>
-                      </div>
-
-                      {reservation.notes && (
-                        <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg text-sm mt-2">
-                          <p className="text-gray-700 dark:text-gray-300 italic">{reservation.notes}</p>
-                        </div>
+            return (
+              <div
+                key={reservation.id}
+                className={`bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden transition-all duration-300 ${isToday ? "border-l-4 border-l-blue-500" : isPast ? "opacity-80" : ""
+                  }`}
+              >
+                <div className="p-6">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h3 className="font-bold text-lg text-gray-900 dark:text-white">
+                        {reservation.hairstyleChosen || "Haircut"}
+                      </h3>
+                      {reservation.date && reservation.time && (
+                        <p className="text-gray-500 dark:text-gray-400 text-sm">
+                          {format(parseISO(reservation.date), "EEEE, MMMM d, yyyy")} • {reservation.time}
+                        </p>
                       )}
+                    </div>
+                    {getStatusBadge(reservation.status)}
+                  </div>
 
-                      {/* Show rating if completed and rated */}
-                      {reservation.status === "COMPLETED" && reservation.rating && (
-                        <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg text-sm mt-2">
-                          <div className="flex items-center mb-1">
-                            <p className="text-gray-700 dark:text-gray-300 font-medium mr-2">Your Rating:</p>
-                            <div className="flex">
-                              {[1, 2, 3, 4, 5].map((star) => (
-                                <Star
-                                  key={star}
-                                  className={`h-4 w-4 ${
-                                    star <= reservation.rating
-                                      ? "text-yellow-500 fill-yellow-500"
-                                      : "text-gray-300 dark:text-gray-600"
-                                  }`}
-                                />
-                              ))}
+                  <div className="space-y-3">
+                    <div className="flex items-center">
+                      <User className="h-4 w-4 text-gray-400 mr-2" />
+                      <span className="text-gray-700 dark:text-gray-300">
+                        {role === "BARBER"
+                          ? reservation.client?.username || "Client"
+                          : reservation.barber?.username || "Barber"}
+                      </span>
+                    </div>
+
+                    {isExpanded && (
+                      <div key={`expanded-${reservation.id}`}>
+                        <>
+                          {reservation.barber?.barbershop && (
+                            <div className="flex items-center">
+                              <MapPin className="h-4 w-4 text-gray-400 mr-2" />
+                              <span className="text-gray-700 dark:text-gray-300">
+                                {reservation.barber.barbershop.name || "Barbershop"} -{" "}
+                                {reservation.barber.barbershop.address || "Address"}
+                              </span>
                             </div>
-                          </div>
-                          {reservation.ratingComment && (
-                            <p className="text-gray-700 dark:text-gray-300 italic">{reservation.ratingComment}</p>
                           )}
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
 
-                <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
-                  <button
-                    onClick={() => toggleCardExpansion(reservation.id)}
-                    className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-sm flex items-center"
-                  >
-                    {isExpanded ? (
-                      <>
-                        <ChevronUp className="h-4 w-4 mr-1" />
-                        Less
-                      </>
-                    ) : (
-                      <>
-                        <ChevronDown className="h-4 w-4 mr-1" />
-                        More
-                      </>
+                          {reservation.hairstyleChosen && (
+                            <div className="flex items-center">
+                              <Scissors className="h-4 w-4 text-gray-400 mr-2" />
+                              <span className="text-gray-700 dark:text-gray-300">{reservation.hairstyleChosen}</span>
+                              {/* Try to load image if available */}
+                              {reservation.hairstyleChosen && (
+                                <div className="mt-2">
+                                  <img
+                                    key={`image-${reservation.id}`} // Add this line
+                                    className="h-32 w-32 rounded-lg object-cover"
+                                    src={`/src/assets/images/${reservation.hairstyleChosen}.jpeg`}
+                                    alt={reservation.hairstyleChosen}
+                                    onError={(e) => {
+                                      e.target.style.display = "none";
+                                    }}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          <div className="flex items-center">
+                            <Clock className="h-4 w-4 text-gray-400 mr-2" />
+                            <span className="text-gray-700 dark:text-gray-300">Duration: 30 min</span>
+                          </div>
+
+                          {reservation.notes && (
+                            <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg text-sm mt-2">
+                              <p className="text-gray-700 dark:text-gray-300 italic">{reservation.notes}</p>
+                            </div>
+                          )}
+
+                          {/* Show rating if completed and rated */}
+                          {reservation.status === "COMPLETED" && reservation.review && (
+                            <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg text-sm mt-2">
+                              <div className="flex items-center mb-1">
+                                <p className="text-gray-700 dark:text-gray-300 font-medium mr-2">Your Rating:</p>
+                                <div className="flex">
+                                  {[1, 2, 3, 4, 5].map((star) => (
+                                    <Star
+                                      key={star}
+                                      className={`h-4 w-4 ${star <= reservation.review.rating
+                                          ? "text-yellow-500 fill-yellow-500"
+                                          : "text-gray-300 dark:text-gray-600"
+                                        }`}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                              {reservation.review.comment && (
+                                <p className="text-gray-700 dark:text-gray-300 italic">{reservation.review.comment}</p>
+                              )}
+                            </div>
+                          )}
+                        </>
+                      </div>
                     )}
-                  </button>
+                  </div>
 
-                  <div className="flex gap-2">
+                  <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
                     <button
-                      onClick={() => {
-                        setSelectedReservation(reservation)
-                        setDetailsOpen(true)
-                      }}
-                      className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      onClick={() => toggleCardExpansion(reservation.id)}
+                      className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-sm flex items-center"
                     >
-                      Details
+                      {isExpanded ? (
+                        <>
+                          <ChevronUp className="h-4 w-4 mr-1" />
+                          Less
+                        </>
+                      ) : (
+                        <>
+                          <ChevronDown className="h-4 w-4 mr-1" />
+                          More
+                        </>
+                      )}
                     </button>
 
-                    {reservation.status === "PENDING" && (
+                    <div className="flex gap-2">
                       <button
-                        onClick={() => handleStatusChange(reservation.id, "CANCELLED")}
-                        className="px-3 py-1.5 text-sm bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                        onClick={() => {
+                          setSelectedReservation(reservation)
+                          setDetailsOpen(true)
+                        }}
+                        className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                       >
-                        Cancel
+                        Details
                       </button>
-                    )}
 
-                    {reservation.status === "CONFIRMED" && role === "BARBER" && (
-                      <button
-                        onClick={() => handleStatusChange(reservation.id, "COMPLETED")}
-                        className="px-3 py-1.5 text-sm bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
-                      >
-                        Complete
-                      </button>
-                    )}
+                      {reservation.status === "PENDING" && (
+                        <button
+                          onClick={() => handleStatusChange(reservation.id, "CANCELLED")}
+                          className="px-3 py-1.5 text-sm bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      )}
 
-                    {reservation.status === "COMPLETED" && role === "CLIENT" && !reservation.rated && (
-                      <button
-                        onClick={() => openRatingModal(reservation.id)}
-                        className="px-3 py-1.5 text-sm bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg transition-colors"
-                      >
-                        Rate
-                      </button>
-                    )}
+                      {reservation.status === "CONFIRMED" && role === "BARBER" && (
+                        <button
+                          onClick={() => handleStatusChange(reservation.id, "COMPLETED")}
+                          className="px-3 py-1.5 text-sm bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+                        >
+                          Complete
+                        </button>
+                      )}
+
+                      {reservation.status === "COMPLETED" && role === "CLIENT" && !reservation.review && (
+                        <button
+                          onClick={() => openRatingModal(reservation)}
+                          className="px-3 py-1.5 text-sm bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg transition-colors"
+                        >
+                          Rate
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          )
-        })}
+            )
+          })}
       </div>
     )
   }

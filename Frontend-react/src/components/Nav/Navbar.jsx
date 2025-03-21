@@ -155,7 +155,7 @@ export default function NavBar() {
                             d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
                           />
                         </svg>
-                        Subscription
+                        Offers
                       </span>
                     </Link>
                   </>
@@ -187,19 +187,7 @@ export default function NavBar() {
                   {isBarber ? "My Appointments" : "My Reservations"}
                 </Link>
 
-                {/* If logged in and NOT barber */}
-                {isAuthenticated && !isBarber && (
-                  <Link
-                    to="/convertpoints"
-                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
-                      isActive("/convertpoints")
-                        ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300"
-                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                    }`}
-                  >
-                    My Points
-                  </Link>
-                )}
+               
               </div>
             </div>
           </div>
@@ -540,7 +528,7 @@ export default function NavBar() {
                         d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
                       />
                     </svg>
-                    Subscription
+                    Offers
                   </span>
                 </Link>
               </>
@@ -572,18 +560,7 @@ export default function NavBar() {
               {isBarber ? "My Appointments" : "My Reservations"}
             </Link>
 
-            {isAuthenticated && !isBarber && (
-              <Link
-                to="/convertpoints"
-                className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
-                  isActive("/convertpoints")
-                    ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300"
-                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                }`}
-              >
-                My Points
-              </Link>
-            )}
+           
 
             {!isAuthenticated && (
               <>

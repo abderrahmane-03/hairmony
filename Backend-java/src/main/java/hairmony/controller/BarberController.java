@@ -1,7 +1,7 @@
 package hairmony.controller;
 
 import hairmony.entities.Barber;
-import hairmony.service.BarberService;
+import hairmony.serviceInterfaces.BarberServiceInf;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,14 +12,14 @@ import java.util.List;
 @RequiredArgsConstructor
 public class BarberController {
 
-    private final BarberService barberService;
+    private final BarberServiceInf barberService; // Inject the interface
 
     @GetMapping
     public List<Barber> getAllBarbers() {
         return barberService.getAllBarbers();
     }
 
-    // e.g. GET /api/barbers?shopId=123
+    // e.g. GET /barbers?shopId=123
     @GetMapping(params = "shopId")
     public List<Barber> getBarbersByShopId(@RequestParam Long shopId) {
         return barberService.getBarbersByShopId(shopId);
@@ -30,3 +30,4 @@ public class BarberController {
         return barberService.getBarberById(barberId);
     }
 }
+

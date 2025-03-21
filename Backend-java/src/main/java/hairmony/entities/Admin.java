@@ -11,7 +11,7 @@ import lombok.*;
 @NoArgsConstructor
 public class Admin extends User {
 
-    public Admin(String username, String password, String role) {
-        super(username, password, role);
+    public Admin(String username, String password, String role,String picture) {
+        super(username, password, role,picture);
     }
 }
