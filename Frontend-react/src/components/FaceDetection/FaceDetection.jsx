@@ -101,7 +101,7 @@ export default function UploadImage() {
       const formData = new FormData()
       formData.append("file", resizedFile)
 
-      const response = await axios.post("http://localhost:8443/public/analyze-face", formData, {
+      const response = await axios.post("http://localhost:8443/AI/analyze-face", formData, {
         headers: { "Content-Type": "multipart/form-data" },
         onUploadProgress: (progressEvent) => {
           const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total)
@@ -565,7 +565,7 @@ export default function UploadImage() {
                     <div className="flex items-start space-x-4">
                       <div
                         className="flex-shrink-0 w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 
-                                      rounded-xl flex items-center justify-center shadow-md group-hover:shadow-indigo-500/20 transition-all"
+                                  rounded-xl flex items-center justify-center shadow-md group-hover:shadow-indigo-500/20 transition-all"
                       >
                         <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path
@@ -604,18 +604,11 @@ export default function UploadImage() {
                             to="/reservation"
                             state={{
                               faceShape: faceData.shape,
-                              recommendedHairstyles: faceData.hairstyles,
+                              recommendedHairstyleNames: Array.isArray(faceData.hairstyles) ? faceData.hairstyles : [],
+                              selectedHairstyleName: style // Pass the clicked hairstyle name
                             }}
                             className="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-white text-sm font-medium transition-colors shadow-sm hover:shadow-md"
                           >
-                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                              />
-                            </svg>
                             Book Appointment
                           </Link>
                         </div>

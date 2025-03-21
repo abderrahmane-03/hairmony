@@ -101,7 +101,7 @@ export default function LiveFaceShape() {
       const formData = new FormData()
       formData.append("file", blob, "frame.jpg")
 
-      const response = await axios.post("http://localhost:8443/public/analyze-face", formData, {
+      const response = await axios.post("http://localhost:8443/AI/analyze-face", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       })
 

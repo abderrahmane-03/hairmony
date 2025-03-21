@@ -32,6 +32,6 @@ public class Reservation {
     @JoinColumn(name = "barber_id")
     private Barber barber;
 
-    // Possibly reference Payment or be paid later
-    // Possibly a status: "SCHEDULED", "COMPLETED", etc.
+    @Column(nullable = false, columnDefinition = "varchar(255) default 'CONFIRMED'")
+    private String status;
 }

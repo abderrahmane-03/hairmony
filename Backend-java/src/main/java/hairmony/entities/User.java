@@ -34,6 +34,14 @@ public abstract class User {
     @Column(nullable = false, columnDefinition = "boolean default false")
     private boolean unlimitedAccess;
 
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private boolean VIPSubscriber;
+
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private boolean normalSubscriber;
+
+
+
     public User(String username, String password, String role) {
         this.username = username;
         this.password = password;

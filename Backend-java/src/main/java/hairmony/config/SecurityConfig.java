@@ -43,8 +43,12 @@ public class SecurityConfig {
                                 "/auth/login",
                                 "/payment/stripe-success",
                                 "/payment/stripe-cancel",
+                                "/stripe-checkout-reservation",
                                 "/payment/details",
-                                "/notifications/**"
+                                "/notifications/**",
+                                "/barbers",
+                                "/barbershops",
+                                "/reservations"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

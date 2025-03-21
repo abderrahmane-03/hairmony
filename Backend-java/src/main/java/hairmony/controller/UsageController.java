@@ -2,7 +2,11 @@ package hairmony.controller;
 
 import hairmony.entities.User;
 import hairmony.repository.UserRepository;
+import hairmony.service.CustomUserDetails;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.*;
 
@@ -11,13 +15,18 @@ import java.util.Map;
 @RestController
 @RequestMapping("/usage")
 @RequiredArgsConstructor
+@Transactional
 public class UsageController {
 
     private final UserRepository userRepository;
 
     @GetMapping("/check")
-    public Map<String, String> checkUsage(@RequestParam String feature, @RequestParam Long userId) {
+    public Map<String, String> checkUsage(@RequestParam String feature,@AuthenticationPrincipal UserDetails userDetails) {
         // 1. Load user
+        if (!(userDetails instanceof CustomUserDetails)) {
+            throw new IllegalStateException("Invalid UserDetails implementation");
+        }
+        Long userId = ((CustomUserDetails) userDetails).getUser().getId();
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 

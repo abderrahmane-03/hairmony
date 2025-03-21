@@ -22,6 +22,7 @@ import {
 export default function PaymentOffers() {
   const { userId } = useAuth() // Ensure your AuthContext provides userId
   const [billingCycle, setBillingCycle] = useState("monthly")
+  // const [selectedPlan, setSelectedPlan] = useState(null)
 
   const handlePurchase = async (amount, name) => {
     try {
@@ -45,6 +46,7 @@ export default function PaymentOffers() {
     }
   }
 
+  // Update the plans object to include the two new subscription offers
   const plans = {
     monthly: [
       {
@@ -66,6 +68,41 @@ export default function PaymentOffers() {
         features: ["5 image uploads per month", "Live face detection", "Priority processing", "24/7 support"],
         popular: true,
         icon: <Video className="h-6 w-6" />,
+      },
+      {
+        id: "normal_subscriber",
+        name: "Normal Subscriber",
+        price: 40,
+        amount: 4000,
+        description: "Perfect for regular clients",
+        features: [
+          "Unlimited uploads",
+          "Live face detection",
+          "2 free haircuts per month",
+          "Priority processing",
+          "24/7 support",
+        ],
+        popular: false,
+        icon: <Users className="h-6 w-6" />,
+        isSubscription: true,
+      },
+      {
+        id: "vip_subscriber",
+        name: "VIP Subscriber",
+        price: 70,
+        amount: 7000,
+        description: "For the ultimate haircare experience",
+        features: [
+          "Unlimited uploads",
+          "Advanced face detection",
+          "3 free haircuts per month",
+          "Highest priority processing",
+          "Dedicated support team",
+          "Custom analysis reports",
+        ],
+        popular: false,
+        icon: <Crown className="h-6 w-6" />,
+        isSubscription: true,
       },
       {
         id: "premium",
@@ -104,6 +141,41 @@ export default function PaymentOffers() {
         features: ["5 image uploads per month", "Live face detection", "Priority processing", "24/7 support"],
         popular: true,
         icon: <Video className="h-6 w-6" />,
+      },
+      {
+        id: "normal_subscriber",
+        name: "Normal Subscriber",
+        price: 400,
+        amount: 40000,
+        description: "Perfect for regular clients",
+        features: [
+          "Unlimited uploads",
+          "Live face detection",
+          "2 free haircuts per month",
+          "Priority processing",
+          "24/7 support",
+        ],
+        popular: false,
+        icon: <Users className="h-6 w-6" />,
+        isSubscription: true,
+      },
+      {
+        id: "vip_subscriber",
+        name: "VIP Subscriber",
+        price: 700,
+        amount: 70000,
+        description: "For the ultimate haircare experience",
+        features: [
+          "Unlimited uploads",
+          "Advanced face detection",
+          "3 free haircuts per month",
+          "Highest priority processing",
+          "Dedicated support team",
+          "Custom analysis reports",
+        ],
+        popular: false,
+        icon: <Crown className="h-6 w-6" />,
+        isSubscription: true,
       },
       {
         id: "premium",
@@ -149,7 +221,7 @@ export default function PaymentOffers() {
   ]
 
   return (
-    <div className="pt-24 min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-16">
@@ -191,17 +263,22 @@ export default function PaymentOffers() {
         </div>
 
         {/* Pricing Cards */}
-        <div className="grid md:grid-cols-3 gap-8 mb-16">
+        <div className="grid md:grid-cols-3 lg:grid-cols-5 gap-8 mb-16">
           {plans[billingCycle].map((plan) => (
             <div
               key={plan.id}
               className={`relative bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden transition-all duration-300 hover:shadow-2xl transform hover:-translate-y-1 ${
                 plan.popular ? "ring-2 ring-blue-500 scale-105 md:scale-110" : ""
-              }`}
+              } ${plan.isSubscription ? "md:col-span-2" : ""}`}
             >
               {plan.popular && (
                 <div className="absolute top-0 right-0 bg-blue-500 text-white px-4 py-1 rounded-bl-lg font-medium text-sm">
                   Most Popular
+                </div>
+              )}
+              {plan.isSubscription && (
+                <div className="absolute top-0 left-0 bg-purple-500 text-white px-4 py-1 rounded-br-lg font-medium text-sm">
+                  Subscription
                 </div>
               )}
 
@@ -210,9 +287,9 @@ export default function PaymentOffers() {
                   <div className="flex items-center">
                     <div
                       className={`p-2 rounded-full ${
-                        plan.id === "premium"
+                        plan.id === "vip_subscriber" || plan.id === "premium"
                           ? "bg-purple-100 text-purple-600 dark:bg-purple-900 dark:text-purple-300"
-                          : plan.id === "standard"
+                          : plan.id === "normal_subscriber" || plan.id === "standard"
                             ? "bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300"
                             : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"
                       }`}
@@ -221,7 +298,7 @@ export default function PaymentOffers() {
                     </div>
                     <h3 className="ml-3 text-xl font-bold text-gray-900 dark:text-white">{plan.name}</h3>
                   </div>
-                  {plan.id === "premium" && (
+                  {(plan.id === "premium" || plan.id === "vip_subscriber") && (
                     <span className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300 text-xs font-semibold px-2.5 py-0.5 rounded-full">
                       VIP
                     </span>
@@ -249,14 +326,14 @@ export default function PaymentOffers() {
                 <button
                   onClick={() => handlePurchase(plan.amount, plan.name)}
                   className={`w-full py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center ${
-                    plan.id === "premium"
+                    plan.id === "vip_subscriber" || plan.id === "premium"
                       ? "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white"
-                      : plan.id === "standard"
+                      : plan.id === "normal_subscriber" || plan.id === "standard"
                         ? "bg-blue-600 hover:bg-blue-700 text-white"
                         : "bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white"
                   }`}
                 >
-                  {plan.id === "premium" ? (
+                  {plan.id === "vip_subscriber" || plan.id === "premium" ? (
                     <>
                       <Crown className="h-5 w-5 mr-2" />
                       Get VIP Access
@@ -276,7 +353,6 @@ export default function PaymentOffers() {
         {/* Features comparison */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 mb-16">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Compare Plan Features</h2>
-
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -284,6 +360,10 @@ export default function PaymentOffers() {
                   <th className="py-4 px-6 text-left text-gray-500 dark:text-gray-400 font-medium">Feature</th>
                   <th className="py-4 px-6 text-center text-gray-500 dark:text-gray-400 font-medium">Basic</th>
                   <th className="py-4 px-6 text-center text-gray-500 dark:text-gray-400 font-medium">Standard</th>
+                  <th className="py-4 px-6 text-center text-gray-500 dark:text-gray-400 font-medium">
+                    Normal Subscriber
+                  </th>
+                  <th className="py-4 px-6 text-center text-gray-500 dark:text-gray-400 font-medium">VIP Subscriber</th>
                   <th className="py-4 px-6 text-center text-gray-500 dark:text-gray-400 font-medium">Premium VIP</th>
                 </tr>
               </thead>
@@ -292,6 +372,18 @@ export default function PaymentOffers() {
                   <td className="py-4 px-6 text-gray-800 dark:text-gray-200">Image Uploads</td>
                   <td className="py-4 px-6 text-center text-gray-800 dark:text-gray-200">1 per month</td>
                   <td className="py-4 px-6 text-center text-gray-800 dark:text-gray-200">5 per month</td>
+                  <td className="py-4 px-6 text-center text-gray-800 dark:text-gray-200">
+                    <div className="flex items-center justify-center">
+                      <Infinity className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                      <span className="ml-1">Unlimited</span>
+                    </div>
+                  </td>
+                  <td className="py-4 px-6 text-center text-gray-800 dark:text-gray-200">
+                    <div className="flex items-center justify-center">
+                      <Infinity className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                      <span className="ml-1">Unlimited</span>
+                    </div>
+                  </td>
                   <td className="py-4 px-6 text-center text-gray-800 dark:text-gray-200">
                     <div className="flex items-center justify-center">
                       <Infinity className="h-5 w-5 text-purple-600 dark:text-purple-400" />
@@ -303,7 +395,31 @@ export default function PaymentOffers() {
                   <td className="py-4 px-6 text-gray-800 dark:text-gray-200">Face Detection</td>
                   <td className="py-4 px-6 text-center text-gray-800 dark:text-gray-200">Basic</td>
                   <td className="py-4 px-6 text-center text-gray-800 dark:text-gray-200">Live</td>
+                  <td className="py-4 px-6 text-center text-gray-800 dark:text-gray-200">Live</td>
                   <td className="py-4 px-6 text-center text-gray-800 dark:text-gray-200">Advanced</td>
+                  <td className="py-4 px-6 text-center text-gray-800 dark:text-gray-200">Advanced</td>
+                </tr>
+                <tr className="border-b border-gray-200 dark:border-gray-700">
+                  <td className="py-4 px-6 text-gray-800 dark:text-gray-200">Free Haircuts</td>
+                  <td className="py-4 px-6 text-center text-gray-800 dark:text-gray-200">
+                    <span className="inline-block w-5 h-0.5 bg-gray-300 dark:bg-gray-600"></span>
+                  </td>
+                  <td className="py-4 px-6 text-center text-gray-800 dark:text-gray-200">
+                    <span className="inline-block w-5 h-0.5 bg-gray-300 dark:bg-gray-600"></span>
+                  </td>
+                  <td className="py-4 px-6 text-center text-gray-800 dark:text-gray-200">
+                    <div className="flex items-center justify-center">
+                      <span className="font-medium text-blue-600 dark:text-blue-400">2 per month</span>
+                    </div>
+                  </td>
+                  <td className="py-4 px-6 text-center text-gray-800 dark:text-gray-200">
+                    <div className="flex items-center justify-center">
+                      <span className="font-medium text-purple-600 dark:text-purple-400">3 per month</span>
+                    </div>
+                  </td>
+                  <td className="py-4 px-6 text-center text-gray-800 dark:text-gray-200">
+                    <span className="inline-block w-5 h-0.5 bg-gray-300 dark:bg-gray-600"></span>
+                  </td>
                 </tr>
                 <tr className="border-b border-gray-200 dark:border-gray-700">
                   <td className="py-4 px-6 text-gray-800 dark:text-gray-200">Processing Speed</td>
@@ -312,6 +428,18 @@ export default function PaymentOffers() {
                     <div className="flex items-center justify-center">
                       <Zap className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                       <span className="ml-1">Priority</span>
+                    </div>
+                  </td>
+                  <td className="py-4 px-6 text-center text-gray-800 dark:text-gray-200">
+                    <div className="flex items-center justify-center">
+                      <Zap className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                      <span className="ml-1">Priority</span>
+                    </div>
+                  </td>
+                  <td className="py-4 px-6 text-center text-gray-800 dark:text-gray-200">
+                    <div className="flex items-center justify-center">
+                      <Zap className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                      <span className="ml-1">Highest Priority</span>
                     </div>
                   </td>
                   <td className="py-4 px-6 text-center text-gray-800 dark:text-gray-200">
@@ -325,6 +453,13 @@ export default function PaymentOffers() {
                   <td className="py-4 px-6 text-gray-800 dark:text-gray-200">Support</td>
                   <td className="py-4 px-6 text-center text-gray-800 dark:text-gray-200">Email</td>
                   <td className="py-4 px-6 text-center text-gray-800 dark:text-gray-200">24/7</td>
+                  <td className="py-4 px-6 text-center text-gray-800 dark:text-gray-200">24/7</td>
+                  <td className="py-4 px-6 text-center text-gray-800 dark:text-gray-200">
+                    <div className="flex items-center justify-center">
+                      <Star className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                      <span className="ml-1">Dedicated Team</span>
+                    </div>
+                  </td>
                   <td className="py-4 px-6 text-center text-gray-800 dark:text-gray-200">
                     <div className="flex items-center justify-center">
                       <Star className="h-5 w-5 text-purple-600 dark:text-purple-400" />
@@ -339,6 +474,12 @@ export default function PaymentOffers() {
                   </td>
                   <td className="py-4 px-6 text-center text-gray-800 dark:text-gray-200">
                     <span className="inline-block w-5 h-0.5 bg-gray-300 dark:bg-gray-600"></span>
+                  </td>
+                  <td className="py-4 px-6 text-center text-gray-800 dark:text-gray-200">
+                    <span className="inline-block w-5 h-0.5 bg-gray-300 dark:bg-gray-600"></span>
+                  </td>
+                  <td className="py-4 px-6 text-center text-gray-800 dark:text-gray-200">
+                    <Check className="h-5 w-5 text-green-500 mx-auto" />
                   </td>
                   <td className="py-4 px-6 text-center text-gray-800 dark:text-gray-200">
                     <Check className="h-5 w-5 text-green-500 mx-auto" />

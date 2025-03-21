@@ -18,8 +18,11 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        // Map the user's role to a SimpleGrantedAuthority
-        return Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getRole().toUpperCase()));
+        if (user.getRole() == null) {
+            return Collections.emptyList(); // No roles assigned
+        }
+        // Convert the single role to a GrantedAuthority
+        return Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getRole()));
     }
 
     @Override
@@ -32,21 +35,32 @@ public class CustomUserDetails implements UserDetails {
         return user.getUsername();
     }
 
-    // You can customize the accountNonExpired, accountNonLocked, etc.
     @Override
     public boolean isAccountNonExpired() {
         return true;
     }
+
     @Override
     public boolean isAccountNonLocked() {
         return true;
     }
+
     @Override
     public boolean isCredentialsNonExpired() {
         return true;
     }
+
     @Override
     public boolean isEnabled() {
         return true;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    // Add this method to access the ID
+    public Long getId() {
+        return user.getId();
     }
 }
