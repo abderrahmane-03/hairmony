@@ -1,41 +1,40 @@
 package hairmony.service;
 
+import hairmony.dto.ReservationRequestDTO;
 import hairmony.entities.*;
 import hairmony.exceptions.PaymentRequiredException;
 import hairmony.repository.*;
+import hairmony.serviceInterfaces.NotificationServiceInf;
+import hairmony.serviceInterfaces.ReservationServiceInf;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import hairmony.dto.ReservationRequestDTO;
 
 import java.time.LocalDate;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class ReservationService {
+public class ReservationServiceImpl implements ReservationServiceInf {
 
     private final ReservationRepository reservationRepository;
     private final ClientRepository clientRepository;
     private final BarberRepository barberRepository;
     private final HaircutRepository haircutRepository;
-    private final NotificationService  notificationService;
+    private final NotificationServiceInf notificationService;
 
+    @Override
     public Reservation createReservation(ReservationRequestDTO dto) {
-        // Find client and barber
         Client client = clientRepository.findById(dto.getClientId())
                 .orElseThrow(() -> new RuntimeException("Client not found"));
         Barber barber = barberRepository.findById(dto.getBarberId())
                 .orElseThrow(() -> new RuntimeException("Barber not found"));
 
-        // Get haircut price (if available)
         Haircuts haircut = haircutRepository.findByNameContainingIgnoreCase(dto.getHairstyleChosen())
                 .stream().findFirst().orElse(null);
         double haircutPrice = (haircut != null) ? haircut.getPrice() : 20.0;
 
-        // Count reservations this month
         int usageThisMonth = countReservationsThisMonth(client.getId());
 
-        // Check subscription and free haircut eligibility
         boolean hasFreeHaircut = false;
         if (client.isVIPSubscriber() && usageThisMonth < 3) {
             hasFreeHaircut = true;
@@ -43,7 +42,6 @@ public class ReservationService {
             hasFreeHaircut = true;
         }
 
-        // Create reservation
         Reservation reservation = new Reservation();
         reservation.setDate(dto.getDate());
         reservation.setTime(dto.getTime());
@@ -55,24 +53,23 @@ public class ReservationService {
             reservation.setStatus("CONFIRMED");
             notificationService.createNotification(
                     client,
-                    "Reservation #" + reservation.getId() + " is confirmed and paid!"
+                    "Reservation for " + reservation.getHairstyleChosen() + " is confirmed and paid!"
             );
-
         } else {
             reservation.setStatus("PENDING_PAYMENT");
             notificationService.createNotification(
                     client,
-                    "Reservation #" + reservation.getId() + " is confirmed and waiting for payment!"
+                    "Reservation for " + reservation.getHairstyleChosen() + " is confirmed and waiting for payment!"
             );
         }
 
         reservationRepository.save(reservation);
+
         notificationService.createNotification(
                 barber,
-                "Reservation #" + reservation.getId() + " you have a new reservation !"
+                "New reservation for " + reservation.getHairstyleChosen()
         );
 
-        // If payment is required, throw exception with reservation details
         if (!hasFreeHaircut) {
             throw new PaymentRequiredException(
                     "Payment required for this haircut",
@@ -84,22 +81,31 @@ public class ReservationService {
         return reservation;
     }
 
-
-
+    @Override
     public Reservation updateStatus(Long reservationId, String newStatus) {
-        // 1) Find the reservation
         Reservation reservation = reservationRepository.findById(reservationId)
                 .orElseThrow(() -> new RuntimeException("Reservation not found"));
 
-        // 2) Update status
         reservation.setStatus(newStatus);
+        reservationRepository.save(reservation);
+
         notificationService.createNotification(
                 reservation.getClient(),
-                "Reservation #" + reservation.getId() + " is changed in status new status #!"+newStatus
+                "Reservation #" + reservation.getId() + " changed status to: " + newStatus
         );
-        // 3) Save
-        return reservationRepository.save(reservation);
+        return reservation;
     }
+
+    @Override
+    public List<Reservation> getReservationsByBarber(Long barberId) {
+        return reservationRepository.findByBarberId(barberId);
+    }
+
+    @Override
+    public List<Reservation> getReservationsByClient(Long clientId) {
+        return reservationRepository.findByClientId(clientId);
+    }
+
     private int countReservationsThisMonth(Long clientId) {
         List<Reservation> all = reservationRepository.findAll();
         LocalDate now = LocalDate.now();
@@ -107,17 +113,10 @@ public class ReservationService {
         int currentYear = now.getYear();
 
         return (int) all.stream()
-                .filter(r -> r.getClient().getId().equals(clientId) &&
-                        r.getDate().getYear() == currentYear &&
-                        r.getDate().getMonthValue() == currentMonth &&
-                        "CONFIRMED".equals(r.getStatus()))
+                .filter(r -> r.getClient().getId().equals(clientId)
+                        && r.getDate().getYear() == currentYear
+                        && r.getDate().getMonthValue() == currentMonth
+                        && "CONFIRMED".equals(r.getStatus()))
                 .count();
-    }
-    public List<Reservation> getReservationsByBarber(Long barberId) {
-        return reservationRepository.findByBarberId(barberId);
-    }
-
-    public List<Reservation> getReservationsByClient(Long clientId) {
-        return reservationRepository.findByClientId(clientId);
     }
 }

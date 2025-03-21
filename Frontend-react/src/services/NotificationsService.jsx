@@ -15,7 +15,7 @@ export const getNotifications = async () => {
 
 export const markAsRead = async (notificationId) => {
   try {
-    await axios.patch(`${API_URL}/notifications/${notificationId}/read`);
+    await axios.post(`${API_URL}/notifications/${notificationId}/read`);
   } catch (error) {
     console.error('Error marking notification as read:', error);
   }

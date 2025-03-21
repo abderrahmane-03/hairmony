@@ -1,10 +1,8 @@
-// hairmony/controller/ReviewController.java
-
 package hairmony.controller;
 
 import hairmony.dto.ReviewRequestDTO;
 import hairmony.entities.Review;
-import hairmony.service.ReviewService;
+import hairmony.serviceInterfaces.ReviewServiceInf;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,9 +11,9 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class ReviewController {
 
-    private final ReviewService reviewService;
+    private final ReviewServiceInf reviewService;
 
-    @PostMapping("/rate")// consumes = "application/json" by default
+    @PostMapping("/rate")
     public Review createReview(@RequestBody ReviewRequestDTO dto) {
         return reviewService.createReview(dto);
     }
