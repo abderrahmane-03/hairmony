@@ -1,12 +1,13 @@
 stripe:
-  secret-key: sk_test_51P96uGRsGbsVRyquYCUoPfCE4a4jXhnkgNfNwFFL2NOymgaeNV1EEY0nuCt23aLIOdCF8Hsh89qP8CgR2e1woXO900kmr3C9Jq
+  secret-key: ${STRIPE_SECRET:sk_test_51P96uGRsGbsVRyquYCUoPfCE4a4jXhnkgNfNwFFL2NOymgaeNV1EEY0nuCt23aLIOdCF8Hsh89qP8CgR2e1woXO900kmr3C9Jq}
+
 spring:
   application:
     name: hairmony
   datasource:
-    url: jdbc:postgresql://localhost:5432/hairmonydb
-    username: postgres
-    password: 200361816
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:hairmonydb}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:200361816}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -15,14 +16,14 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         id.new_generator_mappings: true
-    open-in-view: false  # Corrected syntax
+    open-in-view: false
 
 jwt:
-  secret: MyJwtSecretKeyForHairmony
+  secret: ${JWT_SECRET:MyJwtSecretKeyForHairmony}
   expiration: 3600000  # Token expiry time in milliseconds (1 hour)
 
 server:
-  port: 8443  # Default port
+  port: ${SERVER_PORT:8443}
 
 logging:
   level:
@@ -30,6 +31,5 @@ logging:
     org.springframework.web: DEBUG
     org.springframework.data.jpa: DEBUG
     org.hibernate: INFO
-    org.springframework.security: DEBUG  # Corrected syntax
-    org.hibernate.SQL: DEBUG  # Corrected syntax
-
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG

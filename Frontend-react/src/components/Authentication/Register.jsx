@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import axios from "axios"
-import { Link, useNavigate } from "react-router-dom"
+import {Link ,useNavigate}from "react-router-dom"
 import { CheckCircleIcon, XCircleIcon, EyeIcon, EyeSlashIcon, ArrowPathIcon } from "@heroicons/react/24/outline"
 
 export default function RegisterForm() {
