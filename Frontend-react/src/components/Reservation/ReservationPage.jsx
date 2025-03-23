@@ -1,57 +1,50 @@
 "use client"
 
-import { useEffect, useState,useCallback } from "react"
+import { useEffect, useState, useCallback } from "react"
 import axios from "axios"
 import { useAuth } from "../../contexts/AuthContext"
 import { useLocation } from "react-router-dom"
 
 export default function ReservationPage() {
+  // State for data
   const [hairstyles, setHairstyles] = useState([])
   const [barbershops, setBarbershops] = useState([])
   const [barbers, setBarbers] = useState([])
-  const [filteredBarbers, setFilteredBarbers] = useState([]); // Barbers for selected shop
+  const [filteredBarbers, setFilteredBarbers] = useState([])
+  const [sortedHairstyles, setSortedHairstyles] = useState([])
+  
+  // UI state
   const [loading, setLoading] = useState(true)
   const [activeStep, setActiveStep] = useState(1)
   const [showSummary, setShowSummary] = useState(false)
+  const [error, setError] = useState("")
+  const [success, setSuccess] = useState(false)
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [paymentDetails, setPaymentDetails] = useState(null)
 
-  // Selections
+  // Selection state
   const [selectedHairstyle, setSelectedHairstyle] = useState(null)
   const [selectedBarbershop, setSelectedBarbershop] = useState(null)
   const [selectedBarber, setSelectedBarber] = useState(null)
-
-  // Reservation details
   const [reservationDate, setReservationDate] = useState("")
   const [reservationTime, setReservationTime] = useState("")
   const [notes, setNotes] = useState("")
 
-  // Error state
-  const [error, setError] = useState("")
-  const [success, setSuccess] = useState(false)
-
-  // Add these new state variables at the top of your component
-  const [showPaymentModal, setShowPaymentModal] = useState(false)
-  const [paymentDetails, setPaymentDetails] = useState(null)
-
-  // Auth
+  // Auth and routing
   const { userId } = useAuth()
-
-  // Routing
   const location = useLocation()
-
-  // Extract faceShape, recommendedHairstyleNames, and selectedHairstyleName from state
   const { faceShape, recommendedHairstyleNames = [], selectedHairstyleName } = location.state || {}
 
-  // 1) Fetch all haircuts + barbershops
+  // Fetch initial data
   useEffect(() => {
-    setLoading(true)
     const fetchData = async () => {
+      setLoading(true)
       try {
         const [haircutsRes, barbershopsRes] = await Promise.all([
           axios.get("http://localhost:8443/haircuts"),
           axios.get("http://localhost:8443/barbershops"),
         ])
 
-        // Set hairstyles without sorting yet
         setHairstyles(haircutsRes.data)
         setBarbershops(barbershopsRes.data)
         setError("")
@@ -66,10 +59,14 @@ export default function ReservationPage() {
     fetchData()
   }, [])
 
-  // SOLUTION 1: Use a separate state variable for sorted hairstyles
-  const [sortedHairstyles, setSortedHairstyles] = useState([])
+  // Fetch all barbers
+  useEffect(() => {
+    axios.get('http://localhost:8443/barbers')
+      .then(res => setBarbers(res.data))
+      .catch(err => console.error('Error fetching all barbers:', err))
+  }, [])
 
-  // Sort hairstyles when either hairstyles or recommendedHairstyleNames changes
+  // Sort hairstyles based on recommendations
   useEffect(() => {
     if (hairstyles.length > 0 && recommendedHairstyleNames.length > 0) {
       const sorted = [...hairstyles].sort((a, b) => {
@@ -87,8 +84,7 @@ export default function ReservationPage() {
     }
   }, [hairstyles, recommendedHairstyleNames])
 
-
-  // 2) Pre-select the hairstyle clicked on the upload page
+  // Pre-select hairstyle if provided
   useEffect(() => {
     if (hairstyles.length > 0 && selectedHairstyleName && !selectedHairstyle) {
       const matchingHairstyle = hairstyles.find((h) => h.name === selectedHairstyleName)
@@ -98,36 +94,34 @@ export default function ReservationPage() {
     }
   }, [hairstyles, selectedHairstyle, selectedHairstyleName])
 
-  
-  // 3) When user selects a barbershop, fetch its barbers
-  useEffect(() => {
-    axios.get('http://localhost:8443/barbers')
-      .then(res => setBarbers(res.data))
-      .catch(err => console.error('Error fetching all barbers:', err));
-  }, []);
-  
-  // 2. Modified selection handler
+  // Calculate barbershop rating
+  const getBarbershopRating = useCallback((shopId) => {
+    const shopBarbers = barbers.filter(b => b.barbershop?.id === shopId)
+    if (!shopBarbers.length) return 0
+    return Number((shopBarbers.reduce((sum, b) => sum + (b.rating || 0), 0) / 
+                shopBarbers.length).toFixed(1))
+  }, [barbers])
+
+  // Handle barbershop selection
   const handleSelectBarbershop = (shop) => {
-    setSelectedBarbershop(shop);
-    setSelectedBarber(null);
-    setLoading(true);
-  
-    // Clear previous filtered barbers while loading
-    setFilteredBarbers([]);
+    setSelectedBarbershop(shop)
+    setSelectedBarber(null)
+    setLoading(true)
+    setFilteredBarbers([])
   
     axios.get(`http://localhost:8443/barbers?shopId=${shop.id}`)
       .then((res) => {
-        setFilteredBarbers(res.data); // Store in filteredBarbers
-        setError("");
+        setFilteredBarbers(res.data)
+        setError("")
       })
       .catch((err) => {
-        console.error("Error fetching barbers:", err);
-        setError("Failed to load barbers. Please try another shop or refresh.");
+        console.error("Error fetching barbers:", err)
+        setError("Failed to load barbers. Please try another shop or refresh.")
       })
-      .finally(() => setLoading(false));
-  };
+      .finally(() => setLoading(false))
+  }
 
-  // 4) Submit reservation
+  // Handle reservation submission
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError("")
@@ -147,9 +141,8 @@ export default function ReservationPage() {
         time: reservationTime,
         hairstyleChosen: chosenHairstyle.name,
         notes: notes,
-        
       })
-      console.log(userId)
+      
       setSuccess(true)
       window.scrollTo({ top: 0, behavior: "smooth" })
     } catch (err) {
@@ -157,7 +150,6 @@ export default function ReservationPage() {
 
       // Check if it's a payment required error (402)
       if (err.response && err.response.status === 402) {
-        // Extract reservation details from the error response
         const { reservationId, price, message } = err.response.data
         setPaymentDetails({
           reservationId,
@@ -173,25 +165,23 @@ export default function ReservationPage() {
     }
   }
 
-  // Add this new function to handle payment confirmation
+  // Handle payment confirmation
   const handlePaymentConfirmation = async () => {
     if (!paymentDetails || !paymentDetails.reservationId) return
 
     try {
       setLoading(true)
-      // Make a POST request to the Stripe checkout endpoint
       const response = await axios.post(
         "http://localhost:8443/payment/stripe-checkout-reservation",
-        null, // No request body needed
+        null,
         {
           params: {
             reservationId: paymentDetails.reservationId,
             userId: userId,
           },
-        },
+        }
       )
 
-      // Redirect to the Stripe checkout URL
       if (response.data && response.data.sessionUrl) {
         window.location.href = response.data.sessionUrl
       } else {
@@ -206,107 +196,7 @@ export default function ReservationPage() {
     }
   }
 
-  // Helper function to render star ratings
-  const renderStars = (rating) => {
-    console.log("Rating value:", rating);
-    const numericRating = parseFloat(rating);
-    
-    // If numericRating is not a number, use a fallback of 0.0
-    if (isNaN(numericRating)) {
-      return (
-        <div className="flex items-center">
-          {[...Array(5)].map((_, i) => (
-            <svg
-              key={i}
-              className="w-4 h-4 text-gray-300 dark:text-gray-600"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              <path
-                fillRule="evenodd"
-                d="M10 15.934L4.618 19l1.04-6.067-4.376-4.264 6.041-.878L10 2l2.677 5.791 6.041.878-4.376 4.264L15.382 19 10 15.934z"
-                clipRule="evenodd"
-              />
-            </svg>
-          ))}
-          <span className="ml-1 text-sm text-gray-600 dark:text-gray-400">
-            0.0
-          </span>
-        </div>
-      );
-    }
-    
-    return (
-      <div className="flex items-center">
-        {[...Array(5)].map((_, i) => (
-          <svg
-            key={i}
-            className={`w-4 h-4 ${
-              i < Math.floor(numericRating)
-                ? "text-yellow-400"
-                : i < numericRating
-                ? "text-yellow-400" // you can adjust for half-stars if needed
-                : "text-gray-300 dark:text-gray-600"
-            }`}
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            {i < numericRating && i + 1 > numericRating ? (
-              // Half star path (you can modify if needed)
-              <path
-                fillRule="evenodd"
-                d="M10 15.934L4.618 19l1.04-6.067-4.376-4.264 6.041-.878L10 2l2.677 5.791 6.041.878-4.376 4.264L15.382 19 10 15.934z"
-                clipRule="evenodd"
-                fill="url(#half-star)"
-              />
-            ) : (
-              <path
-                fillRule="evenodd"
-                d="M10 15.934L4.618 19l1.04-6.067-4.376-4.264 6.041-.878L10 2l2.677 5.791 6.041.878-4.376 4.264L15.382 19 10 15.934z"
-                clipRule="evenodd"
-              />
-            )}
-          </svg>
-        ))}
-        <span className="ml-1 text-sm text-gray-600 dark:text-gray-400">
-          {numericRating.toFixed(1)}
-        </span>
-      </div>
-    );
-  };
-  
-
-  // Calculate barbershop rating based on its barbers
-  const getBarbershopRating = useCallback((shopId) => {
-    const shopBarbers = barbers.filter(b => b.barbershop?.id === shopId);
-    if (!shopBarbers.length) return 0;
-    return Number((shopBarbers.reduce((sum, b) => sum + (b.rating || 0), 0) / 
-                shopBarbers.length).toFixed(1));
-  }, [barbers]);
-  // Get available time slots based on date
-  const getAvailableTimeSlots = () => {
-    // This would normally come from your API based on barber availability
-    return [
-      "09:00",
-      "09:30",
-      "10:00",
-      "10:30",
-      "11:00",
-      "11:30",
-      "13:00",
-      "13:30",
-      "14:00",
-      "14:30",
-      "15:00",
-      "15:30",
-      "16:00",
-      "16:30",
-      "17:00",
-      "17:30",
-    ]
-  }
-
-  // Handle next step
+  // Navigation handlers
   const handleNextStep = () => {
     if (activeStep === 1 && !selectedHairstyle) {
       setError("Please select a hairstyle to continue")
@@ -328,13 +218,11 @@ export default function ReservationPage() {
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
 
-  // Handle previous step
   const handlePrevStep = () => {
     setActiveStep((prev) => prev - 1)
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
 
-  // Handle review booking
   const handleReviewBooking = () => {
     if (!reservationDate || !reservationTime) {
       setError("Please select both date and time to continue")
@@ -346,11 +234,76 @@ export default function ReservationPage() {
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
 
-  // Get selected hairstyle details
+  // Helper functions
   const getSelectedHairstyleDetails = () => {
     return hairstyles.find((h) => h.id === selectedHairstyle) || {}
   }
 
+  const getAvailableTimeSlots = () => {
+    return [
+      "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
+      "13:00", "13:30", "14:00", "14:30", "15:00", "15:30",
+      "16:00", "16:30", "17:00", "17:30",
+    ]
+  }
+
+  const renderStars = (rating) => {
+    const numericRating = parseFloat(rating)
+    
+    if (isNaN(numericRating)) {
+      return (
+        <div className="flex items-center">
+          {[...Array(5)].map((_, i) => (
+            <svg
+              key={i}
+              className="w-4 h-4 text-gray-300 dark:text-gray-600"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10 15.934L4.618 19l1.04-6.067-4.376-4.264 6.041-.878L10 2l2.677 5.791 6.041.878-4.376 4.264L15.382 19 10 15.934z"
+                clipRule="evenodd"
+              />
+            </svg>
+          ))}
+          <span className="ml-1 text-sm text-gray-600 dark:text-gray-400">
+            0.0
+          </span>
+        </div>
+      )
+    }
+    
+    return (
+      <div className="flex items-center">
+        {[...Array(5)].map((_, i) => (
+          <svg
+            key={i}
+            className={`w-4 h-4 ${
+              i < Math.floor(numericRating)
+                ? "text-yellow-400"
+                : i < numericRating
+                ? "text-yellow-400"
+                : "text-gray-300 dark:text-gray-600"
+            }`}
+            fill="currentColor"
+            viewBox="0 0 20 20"
+          >
+            <path
+              fillRule="evenodd"
+              d="M10 15.934L4.618 19l1.04-6.067-4.376-4.264 6.041-.878L10 2l2.677 5.791 6.041.878-4.376 4.264L15.382 19 10 15.934z"
+              clipRule="evenodd"
+            />
+          </svg>
+        ))}
+        <span className="ml-1 text-sm text-gray-600 dark:text-gray-400">
+          {numericRating.toFixed(1)}
+        </span>
+      </div>
+    )
+  }
+
+  // Render success state
   if (success) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 pt-20 pb-12 px-4 flex items-center justify-center">
@@ -368,7 +321,7 @@ export default function ReservationPage() {
             </div>
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Booking Confirmed!</h2>
             <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Your appointment has been successfully scheduled. Weve sent a confirmation to your email.
+              Your appointment has been successfully scheduled. We have sent a confirmation to your email.
             </p>
             <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4 mb-6">
               <div className="flex justify-between mb-2">
@@ -413,6 +366,7 @@ export default function ReservationPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 pt-20 pb-12 px-4">
+      {/* Loading Overlay */}
       {loading && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-xl max-w-sm w-full">
@@ -423,7 +377,8 @@ export default function ReservationPage() {
           </div>
         </div>
       )}
-      {/* Add this payment modal right after the loading overlay */}
+
+      {/* Payment Modal */}
       {showPaymentModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-xl max-w-md w-full animate-fade-in">
@@ -542,6 +497,7 @@ export default function ReservationPage() {
           </div>
         </div>
 
+        {/* Main Content */}
         {showSummary ? (
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden animate-fade-in">
             <div className="bg-gradient-to-r from-indigo-600 to-purple-600 h-24 relative">
@@ -568,6 +524,20 @@ export default function ReservationPage() {
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Review Your Booking</h1>
               <p className="text-gray-600 dark:text-gray-400 mb-8">Please confirm your appointment details below</p>
 
+              {error && (
+                <div className="mb-8 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded-xl flex items-center">
+                  <svg className="w-5 h-5 mr-2 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  <span>{error}</span>
+                </div>
+              )}
+
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Hairstyle Summary */}
@@ -590,9 +560,12 @@ export default function ReservationPage() {
                     </h3>
                     <div className="flex items-start">
                       <img
-                        src={(`src/assets/images/${getSelectedHairstyleDetails().name}.jpeg`)}
+                        src={(`src/assets/images/${getSelectedHairstyleDetails().name || "/placeholder.svg"}.jpeg`)}
                         alt={getSelectedHairstyleDetails().name}
                         className="w-40 h-40 object-cover rounded-lg mr-3"
+                        onError={(e) => {
+                          e.target.src = "https://via.placeholder.com/160x160?text=Hairstyle";
+                        }}
                       />
                       <div>
                         <p className="font-medium text-gray-900 dark:text-white">
@@ -627,15 +600,19 @@ export default function ReservationPage() {
                       Selected Barbershop
                     </h3>
                     <div>
-                      <img className="w-40 h-40 rounded-lg" src={(`http://localhost:8443/${selectedBarbershop?.picture}`)} alt="" />
-                      <p className="font-medium text-gray-900 dark:text-white">{selectedBarbershop?.name}</p>
+                      <img 
+                        className="w-40 h-40 rounded-lg" 
+                        src={(`http://localhost:8443/${selectedBarbershop?.picture || "/placeholder.svg"}`)} 
+                        alt={selectedBarbershop?.name}
+                        onError={(e) => {
+                          e.target.src = "https://via.placeholder.com/160x160?text=Barbershop";
+                        }}
+                      />
+                      <p className="font-medium text-gray-900 dark:text-white mt-2">{selectedBarbershop?.name}</p>
                       <p className="text-sm text-gray-500 dark:text-gray-400">{selectedBarbershop?.address}</p>
                       <div className="mt-1">
-                      {renderStars(getBarbershopRating(selectedBarbershop?.id))}
-                      <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">
-                        ({getBarbershopRating(selectedBarbershop?.id)}/5)
-                      </span>
-                    </div>
+                        {renderStars(getBarbershopRating(selectedBarbershop?.id))}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -660,11 +637,13 @@ export default function ReservationPage() {
                   </h3>
                   <div className="flex items-start">
                     <img
-                      src={(`http://localhost:8443/${selectedBarber?.picture }`)}
+                      src={(`http://localhost:8443/${selectedBarber?.picture || "/placeholder.svg"}`)}
                       alt={selectedBarber?.username}
-                      className="w-40 h-406 object-cover rounded-lg mr-3"
+                      className="w-40 h-40 object-cover rounded-lg mr-3"
+                      onError={(e) => {
+                        e.target.src = "https://via.placeholder.com/160x160?text=Barber";
+                      }}
                     />
-                    {console.log(selectedBarber)}
                     <div>
                       <p className="font-medium text-gray-900 dark:text-white">{selectedBarber?.username}</p>
                       <p className="text-sm text-gray-500 dark:text-gray-400">{selectedBarber?.specialty}</p>
@@ -942,9 +921,12 @@ export default function ReservationPage() {
                                 >
                                   <div className="aspect-w-1 aspect-h-1">
                                     <img
-                                      src={(`src/assets/images/${hairstyle.name}.jpeg`)}
+                                      src={(`src/assets/images/${hairstyle.name || "/placeholder.svg"}.jpeg`)}
                                       alt={hairstyle.name}
                                       className="w-full h-72 object-cover"
+                                      onError={(e) => {
+                                        e.target.src = "https://via.placeholder.com/300x300?text=Hairstyle";
+                                      }}
                                     />
                                   </div>
 
@@ -1027,9 +1009,12 @@ export default function ReservationPage() {
                               >
                                 <div className="aspect-w-1 aspect-h-1">
                                   <img
-                                    src={(`src/assets/images/${hairstyle.name}.jpeg`)}
+                                    src={(`src/assets/images/${hairstyle.name || "/placeholder.svg"}.jpeg`)}
                                     alt={hairstyle.name}
                                     className="w-full h-72 object-cover"
+                                    onError={(e) => {
+                                      e.target.src = "https://via.placeholder.com/300x300?text=Hairstyle";
+                                    }}
                                   />
                                 </div>
 
@@ -1117,76 +1102,79 @@ export default function ReservationPage() {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-  {barbershops.map((shop) => {
-    // Calculate rating for EVERY shop
-    const shopRating = getBarbershopRating(shop.id);
-    
-    return (
-      <div
-        key={shop.id}
-        className={`relative p-4 rounded-xl cursor-pointer transition-all duration-300 hover:shadow-md ${
-          selectedBarbershop?.id === shop.id
-            ? "bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800 shadow-md"
-            : "bg-white dark:bg-gray-700 border border-gray-100 dark:border-gray-600"
-        }`}
-        onClick={() => handleSelectBarbershop(shop)}
-      >
-        <div className="flex items-start">
-          <div className="flex-shrink-0 h-16 w-16 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center mr-4">
-            <img 
-              src={`http://localhost:8443/${shop.picture}`} 
-              alt={shop.name}
-              className="w-full h-full object-cover rounded-lg"
-            />
-          </div>
-          <div className="flex-1">
-            <h4 className="font-bold text-lg text-gray-900 dark:text-white">{shop.name}</h4>
-            <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">{shop.address}</p>
-            
-            {/* Always show rating */}
-            <div className="flex items-center gap-2">
-              {renderStars(shopRating)}
-              <span className="text-sm text-gray-500 dark:text-gray-400">
-                ({shopRating}/5)
-              </span>
-            </div>
+                      {barbershops.map((shop) => {
+                        // Calculate rating for EVERY shop
+                        const shopRating = getBarbershopRating(shop.id);
+                        
+                        return (
+                          <div
+                            key={shop.id}
+                            className={`relative p-4 rounded-xl cursor-pointer transition-all duration-300 hover:shadow-md ${
+                              selectedBarbershop?.id === shop.id
+                                ? "bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800 shadow-md"
+                                : "bg-white dark:bg-gray-700 border border-gray-100 dark:border-gray-600"
+                            }`}
+                            onClick={() => handleSelectBarbershop(shop)}
+                          >
+                            <div className="flex items-start">
+                              <div className="flex-shrink-0 h-16 w-16 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center mr-4">
+                                <img 
+                                  src={`http://localhost:8443/${shop.picture}`} 
+                                  alt={shop.name}
+                                  className="w-full h-full object-cover rounded-lg"
+                                  onError={(e) => {
+                                    e.target.src = "https://via.placeholder.com/64x64?text=Shop";
+                                  }}
+                                />
+                              </div>
+                              <div className="flex-1">
+                                <h4 className="font-bold text-lg text-gray-900 dark:text-white">{shop.name}</h4>
+                                <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">{shop.address}</p>
+                                
+                                {/* Always show rating */}
+                                <div className="flex items-center gap-2">
+                                  {renderStars(shopRating)}
+                                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                                    ({shopRating}/5)
+                                  </span>
+                                </div>
 
-            {/* Rest of your content */}
-            <div className="mt-2 flex items-center text-xs text-gray-500 dark:text-gray-400">
-              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <span>{shop.openHours || "9:00 AM - 7:00 PM"}</span>
-            </div>
-          </div>
-          
-          {selectedBarbershop?.id === shop.id && (
-            <div className="absolute top-2 right-2 bg-indigo-100 dark:bg-indigo-900/50 p-1 rounded-full">
-              <svg
-                className="w-5 h-5 text-indigo-600 dark:text-indigo-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  })}
-</div>
+                                {/* Rest of your content */}
+                                <div className="mt-2 flex items-center text-xs text-gray-500 dark:text-gray-400">
+                                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                                    />
+                                  </svg>
+                                  <span>{shop.openHours || "9:00 AM - 7:00 PM"}</span>
+                                </div>
+                              </div>
+                              
+                              {selectedBarbershop?.id === shop.id && (
+                                <div className="absolute top-2 right-2 bg-indigo-100 dark:bg-indigo-900/50 p-1 rounded-full">
+                                  <svg
+                                    className="w-5 h-5 text-indigo-600 dark:text-indigo-400"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M5 13l4 4L19 7"
+                                    />
+                                  </svg>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
 
@@ -1212,7 +1200,6 @@ export default function ReservationPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       {filteredBarbers.map((barber) => {
-                        // Assign a random rating between 3.5 and 5.0 for demo purposes
                         const barberRating = barber.rating
 
                         return (
@@ -1221,16 +1208,18 @@ export default function ReservationPage() {
                             onClick={() => setSelectedBarber(barber)}
                             className={`relative rounded-xl overflow-hidden transition-all duration-300 transform hover:-translate-y-1 cursor-pointer ${
                               selectedBarber?.id === barber.id
-                              
                                 ? "ring-2 ring-indigo-500 shadow-lg scale-105"
                                 : "bg-white dark:bg-gray-700 shadow-md"
                             }`}
                           >
                             <div className="relative">
                               <img
-                                src={(`http://localhost:8443/${barber.picture}`)}
+                                src={(`http://localhost:8443/${barber.picture || "/placeholder.svg"}`)}
                                 alt={barber.name}
                                 className="w-full h-48 object-cover"
+                                onError={(e) => {
+                                  e.target.src = "https://via.placeholder.com/400x200?text=Barber";
+                                }}
                               />
                               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                               <div className="absolute bottom-0 left-0 right-0 p-4">
@@ -1481,4 +1470,3 @@ export default function ReservationPage() {
     </div>
   )
 }
-

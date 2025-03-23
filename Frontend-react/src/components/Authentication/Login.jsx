@@ -34,12 +34,9 @@ export default function Login() {
       // 3. Dispatch "storage" event if you rely on that for cross-tab updates
       window.dispatchEvent(new Event("storage"));
 
-      // 4. Redirect based on role
-      if (data.role === "BARBER") {
-        navigate("/dashboardbarber");
-      } else {
+     
         navigate("/");
-      }
+      
     } catch (err) {
       setError(err.toString());
     } finally {

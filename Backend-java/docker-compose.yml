@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      args:
+        MAVEN_ARGS: "-Djavacpp.platform=linux-x86_64 -Djna.nosys=true"
+    ports:
+      - "8443:8443"
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=hairmonydb
+      - DB_USER=postgres
+      - DB_PASSWORD=200361816
+      - JWT_SECRET=MyJwtSecretKeyForHairmony
+      - STRIPE_SECRET=sk_test_51P96uGRsGbsVRyquYCUoPfCE4a4jXhnkgNfNwFFL2NOymgaeNV1EEY0nuCt23aLIOdCF8Hsh89qP8CgR2e1woXO900kmr3C9Jq
+      - SERVER_PORT=8443
+    volumes:
+      - ~/.m2:/root/.m2
+    depends_on:
+      - postgres
+    networks:
+      - app-network
+
+
+  postgres:
+    image: postgres:13
+    restart: always
+    environment:
+      POSTGRES_DB: hairmonydb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 200361816
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - app-network
+
+volumes:
+  postgres-data:
+
+networks:
+  app-network:

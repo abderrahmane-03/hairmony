@@ -52,9 +52,7 @@ public class AuthServiceImpl implements AuthServiceInf {
             case "CLIENT" -> {
                 newUser = new Client(username, encodedPass, "CLIENT", userPicturePath, null);
             }
-            case "ADMIN" -> {
-                newUser = new Admin(username, encodedPass, "ADMIN", userPicturePath);
-            }
+
             case "BARBER" -> {
                 Barbershop barbershop = handleBarbershopLogic(barbershopId, barbershopName, barbershopAddress, barbershopPic);
                 Barber barber = new Barber(username, encodedPass, "BARBER", userPicturePath, null, 0.0);

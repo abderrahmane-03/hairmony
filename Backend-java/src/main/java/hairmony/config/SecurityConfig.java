@@ -52,7 +52,8 @@ public class SecurityConfig {
                                 "/barbershops",
                                 "/reservations",
                                 "/uploads/**",
-                                "reviews/rate"
+                                "reviews/rate",
+                                "/profile/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

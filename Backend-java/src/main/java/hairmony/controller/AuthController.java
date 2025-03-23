@@ -8,6 +8,7 @@ import hairmony.service.JWTUtil;
 import hairmony.serviceInterfaces.AuthServiceInf;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -71,4 +72,12 @@ public class AuthController {
 
         return new AuthResponse(token, user.getRole(), user.getId());
     }
+    @GetMapping("/users/{id}")
+    public ResponseEntity<User> getUser(@PathVariable("id") Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        return ResponseEntity.ok(user);
+    }
+
+
 }

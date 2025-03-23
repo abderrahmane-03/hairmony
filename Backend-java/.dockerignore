@@ -1,0 +1,8 @@
+target/
+.git
+*.iml
+**/mvnw
+**/mvnw.cmd
+**/.mvn/
+**/Dockerfile
+**/docker-compose*
