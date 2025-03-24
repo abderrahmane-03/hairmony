@@ -115,78 +115,50 @@ public class FaceShapeDetectorServiceImpl implements IFaceShapeDetector {
      *   - foreheadWidth
      *   - faceHeight
      */
-    private String computeFaceShape(double jawWidth, double cheekboneWidth,
-                                    double foreheadWidth, double faceHeight)
-    {
-        double maxWidth = Math.max(jawWidth, Math.max(cheekboneWidth, foreheadWidth));
+    private String computeFaceShape(double jawWidth, double cheekWidth,
+                                    double foreheadWidth, double faceHeight) {
+
+        double maxWidth = Math.max(jawWidth, Math.max(cheekWidth, foreheadWidth));
         double ratio = faceHeight / maxWidth; // e.g. 1.37, 1.25, etc.
 
-        // 1) OBLONG:
-        //    If faceHeight is significantly bigger than the max width
-        //    (e.g. ratio > ~1.40).
-        if (ratio > 1.40) {
-            return "Oblong";
-        }
+        System.out.printf("DEBUG -> jawWidth=%.1f, cheekWidth=%.1f, foreheadWidth=%.1f, faceHeight=%.1f (ratio=%.2f)%n",
+                jawWidth, cheekWidth, foreheadWidth, faceHeight, ratio);
 
-        // 2) DIAMOND (unchanged):
-        //    Cheekbones must be the widest, then forehead > jaw.
-        //    Placed here so it doesn’t get overshadowed by “Oval”.
-        if (cheekboneWidth > foreheadWidth && cheekboneWidth > jawWidth
-                && foreheadWidth > jawWidth) {
+        // Let’s define all shape thresholds in an easily tweakable place:
+        double OBLONG_RATIO = 1.45;        // e.g. anything above 1.45 is oblong
+        double ROUND_MAX_RATIO = 1.30;     // if ratio < 1.30 & widths close => Round
+        double SQUARE_MAX_RATIO = 1.28;    // if ratio < 1.28 & widths close => Square
+        double OVAL_MIN_RATIO = 1.20;      // if ratio >= 1.20 & ratio <= 1.45 => Oval
+
+        // 1) Diamond
+        //    Cheekbones must be the widest, then forehead > jaw, ratio < 1.45 so it’s not “long”.
+        // 1) Oblong
+        if (ratio > OBLONG_RATIO) return "Oblong";
+
+        // 2) Width-based categories
+        if (widthsWithin(35, jawWidth, cheekWidth, foreheadWidth) && ratio < SQUARE_MAX_RATIO)
+            return "Square";
+        if (widthsWithin(50, jawWidth, cheekWidth, foreheadWidth) && ratio < ROUND_MAX_RATIO)
+            return "Round";
+
+        // 3) Specific shapes
+        if (foreheadWidth > cheekWidth && foreheadWidth > jawWidth) return "Heart";
+        if (cheekWidth > foreheadWidth && cheekWidth > jawWidth && foreheadWidth > jawWidth)
             return "Diamond";
-        }
+        if (jawWidth > cheekWidth && jawWidth > foreheadWidth) return "Triangle";
 
-        // 3) ROUND:
-        //    - All widths fairly close (within ~45 or 50).
-        //    - Face height ratio < ~1.30 so it doesn’t become Oval.
-        {
-            double diffJC = Math.abs(jawWidth - cheekboneWidth);
-            double diffCF = Math.abs(cheekboneWidth - foreheadWidth);
-            double diffJF = Math.abs(jawWidth - foreheadWidth);
+        // 4) Fallback
+        if (ratio >= OVAL_MIN_RATIO) return "Oval";
 
-            if (diffJC < 50 && diffCF < 50 && diffJF < 50
-                    && ratio < 1.30) {
-                return "Round";
-            }
-        }
-
-        // 4) SQUARE:
-        //    - All widths fairly close (within ~40).
-        //    - Face height ratio < ~1.28 to avoid misclassifying some ovals.
-        {
-            double diffJC = Math.abs(jawWidth - cheekboneWidth);
-            double diffCF = Math.abs(cheekboneWidth - foreheadWidth);
-            double diffJF = Math.abs(jawWidth - foreheadWidth);
-
-            if (diffJC < 40 && diffCF < 40 && diffJF < 40
-                    && ratio < 1.28) {
-                return "Square";
-            }
-        }
-
-        // 5) OVAL:
-        //    - Face is taller than widths, but not extremely so (not oblong).
-        //    - ratio from about 1.20 up to 1.40 can qualify as Oval if it didn’t pass Diamond, Round, or Square.
-        if (ratio >= 1.20 && ratio <= 1.40) {
-            return "Oval";
-        }
-
-        // 6) HEART:
-        //    - Forehead is largest dimension.
-        if (foreheadWidth > cheekboneWidth && foreheadWidth > jawWidth) {
-            return "Heart";
-        }
-
-        // 7) TRIANGLE:
-        //    - Jaw is largest dimension.
-        if (jawWidth > cheekboneWidth && jawWidth > foreheadWidth) {
-            return "Triangle";
-        }
-
-        // 8) If none matched:
         return "Undetermined";
+
     }
 
+    private boolean widthsWithin(double threshold, double jawWidth, double cheekWidth, double foreheadWidth) {
+        double max = Math.max(jawWidth, Math.max(cheekWidth, foreheadWidth));
+        double min = Math.min(jawWidth, Math.min(cheekWidth, foreheadWidth));
+        return (max - min) <= threshold;
+    }
 
 
     @FunctionalInterface

@@ -38,9 +38,12 @@ public class AIServiceImpl implements AIServiceInf {
     @Override
     public FaceAnalysisResponse analyzeFace(MultipartFile file) {
         try {
-            // 1) Decode raw bytes into an OpenCV Mat
+            // 1) Read raw bytes
             byte[] bytes = file.getBytes();
-            Mat original = imdecode(new Mat(bytes), IMREAD_COLOR);
+
+            // 2) Decode into an OpenCV Mat
+            //    (We keep this in a separate method so we can override in tests.)
+            Mat original = decodeMat(bytes);
             if (original.empty()) {
                 return new FaceAnalysisResponse(
                         "Invalid image or can't decode",
@@ -51,25 +54,10 @@ public class AIServiceImpl implements AIServiceInf {
                 );
             }
 
-            // 2) Resize with aspect ratio and pad to 600x600
-            int original_w = original.cols();
-            int original_h = original.rows();
-            double scale = Math.min(600.0 / original_w, 600.0 / original_h);
-            int new_w = (int) (original_w * scale);
-            int new_h = (int) (original_h * scale);
+            // 3) Resize/pad to 600x600
+            Mat padded = resizeAndPad(original, 600, 600);
 
-            Mat resized = new Mat();
-            resize(original, resized, new Size(new_w, new_h), 0, 0, INTER_AREA);
-
-            int pad_left = (600 - new_w) / 2;
-            int pad_right = 600 - new_w - pad_left;
-            int pad_top = (600 - new_h) / 2;
-            int pad_bottom = 600 - new_h - pad_top;
-
-            Mat padded = new Mat();
-            copyMakeBorder(resized, padded, pad_top, pad_bottom, pad_left, pad_right, BORDER_CONSTANT, new Scalar(0, 0, 0, 0));
-
-            // 3) Get forehead tip from Python
+            // 4) Python forehead tip
             byte[] paddedBytes = matToBytes(padded);
             PointDTO pythonForeheadTipPadded = getForeheadTipFromPython(paddedBytes);
             if (pythonForeheadTipPadded == null) {
@@ -82,7 +70,7 @@ public class AIServiceImpl implements AIServiceInf {
                 );
             }
 
-            // 4) Detect face on the padded image
+            // 5) Detect face
             Rect faceRect = faceDetectionService.detectFace(padded);
             if (faceRect == null) {
                 return new FaceAnalysisResponse(
@@ -94,62 +82,32 @@ public class AIServiceImpl implements AIServiceInf {
                 );
             }
 
-            // 5) Detect landmarks
+            // 6) Detect landmarks
             Point2fVectorVector landmarks = faceShapeDetectorService.detectLandmarks(padded, faceRect);
 
-            // 6) Classify face shape
-            var localResult = faceShapeDetectorService.classifyFaceShape(
-                    landmarks,
-                    faceRect,
-                    pythonForeheadTipPadded.x(),
-                    pythonForeheadTipPadded.y()
+            // 7) Classify
+            IFaceShapeDetector.ClassificationResult localResult = faceShapeDetectorService.classifyFaceShape(
+                    landmarks, faceRect, pythonForeheadTipPadded.x(), pythonForeheadTipPadded.y()
             );
             String shape = localResult.shape();
 
-            // 7) Convert landmarks to list of DTOs (in padded coords)
-            List<PointDTO> landmarkPointsPadded = new ArrayList<>();
-            Point2fVector points = landmarks.get(0);
-            for (int i = 0; i < points.size(); i++) {
-                Point2f p = points.get(i);
-                landmarkPointsPadded.add(new PointDTO(p.x(), p.y()));
-            }
+            // 8) Convert landmarks to original coords (optional). We'll do it fully here:
+            List<PointDTO> originalLandmarks = mapLandmarksToOriginal(landmarks, padded, original);
 
-            // 8) Map to original space
-            double ratio_x = (double) original_w / new_w;
-            double ratio_y = (double) original_h / new_h;
+            // 9) Build RectDTO for the face
+            RectDTO originalFaceRect = mapFaceRectToOriginal(faceRect, padded, original);
 
-            List<PointDTO> landmarkPointsOriginal = new ArrayList<>();
-            for (PointDTO p : landmarkPointsPadded) {
-                double x_original = (p.x() - pad_left) * ratio_x;
-                double y_original = (p.y() - pad_top) * ratio_y;
-                landmarkPointsOriginal.add(new PointDTO(x_original, y_original));
-            }
+            // 10) Map the forehead tip
+            PointDTO originalForeheadTip = mapForeheadTipToOriginal(pythonForeheadTipPadded, padded, original);
 
-            double rect_x_original = (faceRect.x() - pad_left) * ratio_x;
-            double rect_y_original = (faceRect.y() - pad_top) * ratio_y;
-            double rect_width_original = faceRect.width() * ratio_x;
-            double rect_height_original = faceRect.height() * ratio_y;
-
-            RectDTO originalFaceRect = new RectDTO(
-                    (int) rect_x_original,
-                    (int) rect_y_original,
-                    (int) rect_width_original,
-                    (int) rect_height_original
-            );
-
-            // Map Python forehead tip to original space
-            double forehead_x_original = (pythonForeheadTipPadded.x() - pad_left) * ratio_x;
-            double forehead_y_original = (pythonForeheadTipPadded.y() - pad_top) * ratio_y;
-            PointDTO originalForeheadTip = new PointDTO(forehead_x_original, forehead_y_original);
-
-            // 9) Recommended hairstyles
+            // 11) Get recommended hairstyles
             List<String> hairstyles = getRecommendedHairstyles(shape);
 
-            // 10) Return
+            // 12) Return
             return new FaceAnalysisResponse(
                     shape,
                     hairstyles,
-                    landmarkPointsOriginal,
+                    originalLandmarks,
                     originalFaceRect,
                     originalForeheadTip
             );
@@ -166,16 +124,41 @@ public class AIServiceImpl implements AIServiceInf {
         }
     }
 
-    private byte[] matToBytes(Mat mat) throws IOException {
-        BytePointer buffer = new BytePointer();
-        imencode(".jpg", mat, buffer);
-        byte[] byteArray = new byte[(int) buffer.capacity()];
-        buffer.get(byteArray);
-        buffer.deallocate();
-        return byteArray;
+    /**
+     * Overridable decode method. In production, it does a real imdecode.
+     * In tests, we can override to simulate success/failure.
+     */
+    protected Mat decodeMat(byte[] bytes) {
+        return imdecode(new Mat(bytes), IMREAD_COLOR);
     }
 
-    private PointDTO getForeheadTipFromPython(byte[] imageBytes) {
+    /**
+     * Resizes and pads a Mat to a given width & height.
+     */
+    private Mat resizeAndPad(Mat input, int targetW, int targetH) {
+        int original_w = input.cols();
+        int original_h = input.rows();
+        double scale = Math.min(targetW * 1.0 / original_w, targetH * 1.0 / original_h);
+        int new_w = (int) (original_w * scale);
+        int new_h = (int) (original_h * scale);
+
+        Mat resized = new Mat();
+        resize(input, resized, new Size(new_w, new_h), 0, 0, INTER_AREA);
+
+        int pad_left = (targetW - new_w) / 2;
+        int pad_right = targetW - new_w - pad_left;
+        int pad_top = (targetH - new_h) / 2;
+        int pad_bottom = targetH - new_h - pad_top;
+
+        Mat padded = new Mat();
+        copyMakeBorder(resized, padded, pad_top, pad_bottom, pad_left, pad_right, BORDER_CONSTANT, new Scalar(0,0,0,0));
+        return padded;
+    }
+
+    /**
+     * Overridable method that calls the Python microservice or returns null on error.
+     */
+    protected PointDTO getForeheadTipFromPython(byte[] imageBytes) {
         try {
             String base64Img = Base64.getEncoder().encodeToString(imageBytes);
             String jsonPayload = "{ \"image_base64\": \"" + base64Img + "\" }";
@@ -188,27 +171,12 @@ public class AIServiceImpl implements AIServiceInf {
                     .build();
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
             if (response.statusCode() == 200) {
                 String respStr = response.body();
                 if (respStr.contains("forehead_x") && respStr.contains("forehead_y")) {
-                    int fxIndex = respStr.indexOf("forehead_x");
-                    int colon1 = respStr.indexOf(":", fxIndex);
-                    int comma1 = respStr.indexOf(",", colon1);
-                    String fxStr = respStr.substring(colon1 + 1, comma1).trim();
-                    fxStr = fxStr.replaceAll("[^0-9.]", "");
-
-                    int fyIndex = respStr.indexOf("forehead_y");
-                    int colon2 = respStr.indexOf(":", fyIndex);
-                    int close2 = respStr.indexOf("}", colon2);
-                    String fyStr = respStr.substring(colon2 + 1, close2).trim();
-                    fyStr = fyStr.replaceAll("[^0-9.]", "");
-
-                    double fx = Double.parseDouble(fxStr);
-                    double fy = Double.parseDouble(fyStr);
+                    double fx = extractDouble(respStr, "forehead_x");
+                    double fy = extractDouble(respStr, "forehead_y");
                     return new PointDTO(fx, fy);
-                } else {
-                    System.err.println("Unexpected response format: " + respStr);
                 }
             } else {
                 System.err.println("Python service returned status: " + response.statusCode());
@@ -217,6 +185,71 @@ public class AIServiceImpl implements AIServiceInf {
             ex.printStackTrace();
         }
         return null;
+    }
+
+    /**
+     * Helper to extract a double from a JSON-ish substring, given a key.
+     */
+    private double extractDouble(String respStr, String key) {
+        int idx = respStr.indexOf(key);
+        if (idx < 0) return 0.0;
+        int colon = respStr.indexOf(":", idx);
+        int comma = respStr.indexOf(",", colon);
+        if (comma < 0) comma = respStr.indexOf("}", colon);
+        String sub = respStr.substring(colon+1, comma).trim();
+        sub = sub.replaceAll("[^0-9.]", "");
+        return Double.parseDouble(sub);
+    }
+
+    /**
+     * Convert a padded landmark coordinate back to original space.
+     */
+    private List<PointDTO> mapLandmarksToOriginal(Point2fVectorVector landmarks, Mat padded, Mat original) {
+        if (landmarks.empty()) return Collections.emptyList();
+        Point2fVector points = landmarks.get(0);
+
+        // figure out ratio
+        double ratio_x = (double) original.cols() / padded.cols();
+        double ratio_y = (double) original.rows() / padded.rows();
+
+        List<PointDTO> result = new ArrayList<>();
+        for (int i=0; i<points.size(); i++) {
+            float px = points.get(i).x();
+            float py = points.get(i).y();
+            double rx = px * ratio_x;
+            double ry = py * ratio_y;
+            result.add(new PointDTO(rx, ry));
+        }
+        return result;
+    }
+
+    private RectDTO mapFaceRectToOriginal(Rect rect, Mat padded, Mat original) {
+        double ratio_x = (double) original.cols() / padded.cols();
+        double ratio_y = (double) original.rows() / padded.rows();
+
+        int x = (int) (rect.x() * ratio_x);
+        int y = (int) (rect.y() * ratio_y);
+        int w = (int) (rect.width() * ratio_x);
+        int h = (int) (rect.height() * ratio_y);
+        return new RectDTO(x,y,w,h);
+    }
+
+    private PointDTO mapForeheadTipToOriginal(PointDTO tip, Mat padded, Mat original) {
+        double ratio_x = (double) original.cols() / padded.cols();
+        double ratio_y = (double) original.rows() / padded.rows();
+        return new PointDTO(tip.x() * ratio_x, tip.y() * ratio_y);
+    }
+
+    /**
+     * Convert Mat => JPG bytes.
+     */
+    private byte[] matToBytes(Mat mat) throws IOException {
+        BytePointer buffer = new BytePointer();
+        imencode(".jpg", mat, buffer);
+        byte[] arr = new byte[(int) buffer.capacity()];
+        buffer.get(arr);
+        buffer.deallocate();
+        return arr;
     }
 
     private List<String> getRecommendedHairstyles(String faceShape) {

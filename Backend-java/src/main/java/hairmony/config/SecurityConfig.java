@@ -41,19 +41,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(
-                                "/auth/register",
-                                "/auth/login",
-                                "/payment/stripe-success",
-                                "/payment/stripe-cancel",
-                                "/stripe-checkout-reservation",
-                                "/payment/details",
-                                "/notifications/**",
-                                "/barbers",
-                                "/barbershops",
-                                "/reservations",
-                                "/uploads/**",
-                                "reviews/rate",
-                                "/profile/**"
+                                "/auth/**",
+                                "/uploads/**"
+
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
