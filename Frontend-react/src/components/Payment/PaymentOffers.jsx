@@ -36,7 +36,7 @@ export default function PaymentOffers() {
       }
 
       // Post to your API endpoint
-      const res = await fetch(`/api/payment/stripe-checkout?userId=${userId}`, {
+      const res = await fetch(`http://localhost:8443/payment/stripe-checkout?userId=${userId}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
