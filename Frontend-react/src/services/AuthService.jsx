@@ -51,3 +51,13 @@ axios.interceptors.request.use(
   },
   (error) => Promise.reject(error)
 );
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error.response ? error.response.status : null;
+    if (status === 500) {
+      logout();
+    }
+    return Promise.reject(error);
+  }
+);

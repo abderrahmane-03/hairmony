@@ -42,7 +42,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(
                                 "/auth/**",
-                                "/uploads/**"
+                                "/uploads/**",
+                                "/barbershops",
+                                "/payment/**"
 
                         ).permitAll()
                         .anyRequest().authenticated()
@@ -72,13 +74,12 @@ public class SecurityConfig {
     public AuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
         provider.setUserDetailsService(userDetailsService);
-        provider.setPasswordEncoder(passwordEncoder()); // for hashing
+        provider.setPasswordEncoder(passwordEncoder());
         return provider;
     }
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
-        // This allows us to inject AuthenticationManager in our AuthController
         return config.getAuthenticationManager();
     }
 

@@ -23,9 +23,7 @@ public class AuthController {
     private final AuthenticationManager authManager;
     private final UserRepository userRepository;
     private final JWTUtil jwtUtil;
-    private final AuthServiceInf authService;  // inject the interface
-
-    // Registration endpoint consuming multipart form-data
+    private final AuthServiceInf authService;
     @PostMapping(
             value = "/register",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE

@@ -50,12 +50,12 @@ export default function Home() {
             <div className="relative flex items-center">
               <div className="w-16 border border-gray-400"></div>
               <h2 className="mx-4 text-xs font-semibold uppercase text-gray-400">
-                A premium hair salon for men in Warsaw
+                The first in the world a face shape detection plateform
               </h2>
             </div>
             <h1 className="text-5xl md:text-7xl font-bold text-white">Hairmony</h1>
             <h2 className="text-lg text-gray-400 max-w-md">
-              We are experts in cutting. We work quickly, carefully, and elegantly.
+              Dive in to the world of styling. Shoose the best style for you, Based on you and only you, and elegantly.
             </h2>
             <div className="flex flex-col sm:flex-row gap-4 mt-6">
               <Link

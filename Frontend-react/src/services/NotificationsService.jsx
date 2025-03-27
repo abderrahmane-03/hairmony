@@ -1,7 +1,7 @@
 // services/NotificationService.js
 import axios from "../config/interceptor";
 
-const API_URL = "http://localhost:8443"; // Adjust based on your backend
+const API_URL = "http://localhost:8443";
 
 export const getNotifications = async () => {
   try {

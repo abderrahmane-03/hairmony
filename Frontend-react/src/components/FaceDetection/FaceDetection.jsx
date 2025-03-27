@@ -243,12 +243,7 @@ export default function UploadImage() {
       ctx.closePath()
       ctx.stroke();
 
-      [chin, leftCheek, rightCheek, foreheadTip].forEach((point) => {
-        ctx.fillStyle = "#ef4444" // red-500
-        ctx.beginPath()
-        ctx.arc(point.x, point.y, 3, 0, 2 * Math.PI)
-        ctx.fill()
-      })
+     
     }
   }
 

@@ -29,4 +29,7 @@ public class BarberServiceImpl implements BarberServiceInf {
         return barberRepository.findById(barberId)
                 .orElseThrow(() -> new RuntimeException("Barber not found"));
     }
+
+
+
 }

@@ -18,10 +18,7 @@ public class Notification {
     private String message;
     private LocalDateTime createdAt;
 
-    // Possibly a "read" flag
     private boolean read = false;
-
-    // If notifications can go to any user, do a ManyToOne to base User
     @ManyToOne
     @JoinColumn(name = "recipient_id")
     private User recipient;

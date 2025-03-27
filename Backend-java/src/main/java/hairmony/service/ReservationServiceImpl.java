@@ -55,7 +55,15 @@ public class ReservationServiceImpl implements ReservationServiceInf {
                     client,
                     "Reservation for " + reservation.getHairstyleChosen() + " is confirmed and paid!"
             );
-        } else {
+        }
+        if(reservation.isPaid == true){
+            reservation.setPaid(true);
+            notificationService.createNotification(
+                    client,
+                    "your reservation is paid congrats"+ reservation.getHairstyleChosen()
+            );
+        }
+            else {
             reservation.setStatus("PENDING_PAYMENT");
             notificationService.createNotification(
                     client,

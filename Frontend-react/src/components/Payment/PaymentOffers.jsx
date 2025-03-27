@@ -1,4 +1,4 @@
-"use client"
+
 
 import { useState } from "react"
 import { useAuth } from "../../contexts/AuthContext"
@@ -248,29 +248,24 @@ export default function PaymentOffers() {
 
             {/* Billing toggle */}
             <div className="mt-8 flex justify-center">
-              <div className="relative bg-white dark:bg-gray-800 p-1 rounded-full flex">
+              <div className="">
                 <button
                   onClick={() => setBillingCycle("monthly")}
                   className={`${
                     billingCycle === "monthly"
-                      ? "bg-blue-600 text-white"
-                      : "bg-transparent text-gray-700 dark:text-gray-300"
+                      ? ""
+                      : ""
                   } relative py-2 px-6 rounded-full transition-all duration-300 font-medium`}
                 >
-                  Monthly
                 </button>
                 <button
                   onClick={() => setBillingCycle("yearly")}
                   className={`${
                     billingCycle === "yearly"
-                      ? "bg-blue-600 text-white"
-                      : "bg-transparent text-gray-700 dark:text-gray-300"
+                      ? ""
+                      : ""
                   } relative py-2 px-6 rounded-full transition-all duration-300 font-medium`}
                 >
-                  Yearly
-                  <span className="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full">
-                    Save 15%
-                  </span>
                 </button>
               </div>
             </div>

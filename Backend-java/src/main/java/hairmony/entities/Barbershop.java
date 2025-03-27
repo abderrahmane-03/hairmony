@@ -21,10 +21,8 @@ public class Barbershop {
     private double rating;
     private String picture;
 
-    // Relationship: one barbershop has many barbers
     @OneToMany(mappedBy = "barbershop", fetch = FetchType.LAZY)
     @JsonIgnore
     private List<Barber> barbers;
 
-    // constructor(s), getters, setters, etc.
 }

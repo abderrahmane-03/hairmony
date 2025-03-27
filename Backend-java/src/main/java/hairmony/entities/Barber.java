@@ -18,7 +18,7 @@ public class Barber extends User {
 
     @ManyToOne
     @JoinColumn(name = "barbershop_id")
-    private Barbershop barbershop; // If you have a Barbershop entity
+    private Barbershop barbershop;
 
     public Barber(String username, String password, String role,String picture,String specialty, double rating) {
         super(username, password, role,picture);

@@ -30,4 +30,6 @@ public class BarbershopServiceImpl implements BarbershopServiceInf {
         // e.g. set default rating, handle pictures, etc. as needed
         return barbershopRepository.save(shop);
     }
+
+
 }

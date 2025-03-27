@@ -17,10 +17,9 @@ public class Haircuts {
     private String name;
     private String description;
     private double price;
-    private String faceShape;  // To match with face shape recommendations
+    private String faceShape;
     private String imageUrl;
 
-    // Constructors
     public Haircuts() {}
 
     public Haircuts(String name, String description, double price, String faceShape, String imageUrl) {
@@ -30,7 +29,4 @@ public class Haircuts {
         this.faceShape = faceShape;
         this.imageUrl = imageUrl;
     }
-
-    // Getters and Setters
-    // ... (Add all getters and setters for the fields above)
 }

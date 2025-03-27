@@ -16,7 +16,7 @@ public class Reservation {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private LocalDate date;     // or you can store as a single DateTime
+    private LocalDate date;
     private LocalTime time;
     private String hairstyleChosen;
 
@@ -31,7 +31,8 @@ public class Reservation {
     @Column(nullable = false, columnDefinition = "varchar(255) default 'CONFIRMED'")
     private String status;
 
-    // ---- ADD THIS RELATIONSHIP ----
     @OneToOne(mappedBy = "reservation", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Review review;
+
+    private boolean isPaid;
 }

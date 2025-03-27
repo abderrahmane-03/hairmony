@@ -15,13 +15,11 @@ public class Payment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String method;  // e.g. "STRIPE"
-    private double amount;  // e.g. 2.0
-    private String description; // "Live Face Detection", etc.
-
-    private String status;  // e.g. "PENDING", "SUCCESS", "FAILED"
-
-    private String sessionId; // from Stripe
+    private String method;
+    private double amount;
+    private String description;
+    private String status;
+    private String sessionId;
 
     @ManyToOne
     @JoinColumn(name = "user_id")

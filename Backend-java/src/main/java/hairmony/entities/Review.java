@@ -30,7 +30,7 @@ public class Review {
     @JoinColumn(name = "barber_id")
     private Barber barber;
 
-    @JsonIgnore  // <--- Add this to avoid infinite loop
+    @JsonIgnore
     @OneToOne
     @JoinColumn(name = "reservation_id", unique = true)
     private Reservation reservation;

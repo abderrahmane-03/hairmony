@@ -17,12 +17,11 @@ public abstract class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true)  // ensure usernames are unique
+    @Column(unique = true)
     private String username;
 
     private String password;
 
-    // For simplicity, store role as a string: "CLIENT", "BARBER", or "ADMIN"
     private String role;
 
     private String picture;
@@ -49,6 +48,11 @@ public abstract class User {
         this.password = password;
         this.role = role;
         this.picture= picture;
+        this.freeTrialsRemaining = 1;
+        this.LiveTrialsRemaining = 1;
+        this.unlimitedAccess = false;
+        this.VIPSubscriber = false;
+        this.normalSubscriber = false;
 
 
     }

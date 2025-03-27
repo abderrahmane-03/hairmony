@@ -12,10 +12,7 @@ import lombok.*;
 @NoArgsConstructor
 public class Client extends User {
 
-    private String faceShape; // e.g. "oval", "round", etc.
-
-    @ManyToOne
-    private Subscription subscription; // If you have a Subscription entity
+    private String faceShape;
 
     public Client(String username, String password, String role,String picture, String faceShape) {
         super(username, password, role, picture);

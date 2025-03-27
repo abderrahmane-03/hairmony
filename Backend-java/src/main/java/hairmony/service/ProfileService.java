@@ -100,10 +100,7 @@ public class ProfileService implements ProfileServiceInf {
         } else if (user instanceof Client) {
             Client client = (Client) user;
             dto.setFaceShape(client.getFaceShape());
-            if (client.getSubscription() != null) {
-                dto.setSubscriptionId(client.getSubscription().getId());
-                dto.setSubscriptionName(client.getSubscription().getName());
-            }
+
         }
         return dto;
     }

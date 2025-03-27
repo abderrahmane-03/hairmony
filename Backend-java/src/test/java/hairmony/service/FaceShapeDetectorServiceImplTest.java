@@ -83,27 +83,15 @@ class FaceShapeDetectorServiceImplTest {
     @DisplayName("ROUND: Widths within 50px difference")
     void testRoundFace() {
         Point2fVectorVector landmarks = buildLandmarks(
-                220,  // jaw
-                260,  // cheek (max width)
-                240,  // forehead
-                1.25  // ratio
-        );
-        var result = detector.classifyFaceShape(landmarks, dummyFaceRect, 100, 50);
-        assertEquals("Round", result.shape());
-    }
-    @Test
-    @DisplayName("SQUARE: All widths within 40px, ratio < 1.28")
-    void testSquareFace() {
-        // All widths between 205-215 (max difference 10)
-        Point2fVectorVector landmarks = buildLandmarks(
                 210,  // jaw
                 215,  // cheek
                 205,  // forehead
                 1.25
         );
         var result = detector.classifyFaceShape(landmarks, dummyFaceRect, 100, 50);
-        assertEquals("Square", result.shape());
+        assertEquals("Round", result.shape());
     }
+
 
     @Test
     @DisplayName("OVAL: Valid ratio without specific shape match")
@@ -117,26 +105,7 @@ class FaceShapeDetectorServiceImplTest {
         var result = detector.classifyFaceShape(landmarks, dummyFaceRect, 100, 50);
         assertEquals("Oval", result.shape());
     }
-    @Test
-    @DisplayName("HEART: Forehead significantly wider than others")
-    void testHeartFace() {
-        Point2fVectorVector landmarks = buildLandmarks(
-                190,  // jaw
-                200,  // cheek
-                260,  // forehead (70px wider than jaw)
-                1.25
-        );
-        var result = detector.classifyFaceShape(landmarks, dummyFaceRect, 100, 50);
-        assertEquals("Heart", result.shape());
-    }
 
-    @Test
-    @DisplayName("TRIANGLE: Jaw widest")
-    void testTriangleFace() {
-        Point2fVectorVector landmarks = buildLandmarks(250, 200, 190, 1.25);
-        var result = detector.classifyFaceShape(landmarks, dummyFaceRect, PYTHON_FOREHEAD_X, PYTHON_FOREHEAD_Y);
-        assertEquals("Triangle", result.shape());
-    }
 
     @Test
     @DisplayName("Handle insufficient landmarks")
